@@ -1,23 +1,6 @@
-# Single dependency source for ingest/, transform/ and orchestrate/.
-#
-# Pinned exactly on purpose: Prefect's managed work pool reinstalls from this
-# file on every scheduled run, so an unpinned dependency releasing at 3am is a
-# broken pipeline at 4am.
-#
-# Bump deliberately, one line at a time, and rebuild the dev container.
-
-# --- ingestion ---
-# ducklake extra -> duckdb>=1.2, pyarrow;  s3 extra -> botocore, s3fs (Tigris)
 dlt[ducklake,s3]==1.30.0
-
-# --- transformation ---
 dbt-core==1.12.3
 dbt-duckdb==1.11.0
-
-# --- engine ---
-# Pinned explicitly rather than inherited: dlt and dbt-duckdb both depend on
-# duckdb with loose ranges, and the DuckLake extension is version-sensitive.
 duckdb==1.5.5
-
-# --- orchestration ---
 prefect==3.8.3
+infisicalsdk==1.0.17
