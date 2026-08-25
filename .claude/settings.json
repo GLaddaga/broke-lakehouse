@@ -1,4 +1,9 @@
 {
+  "permissions": {
+    "deny": [
+      "Read(./.env)"
+    ]
+  },
   "enabledPlugins": {
     "ponytail@ponytail": true
   }
