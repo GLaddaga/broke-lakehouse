@@ -7,7 +7,7 @@ that lets a process fetch everything else.
 ## The bootstrap credential
 
 A Universal Auth machine identity (client ID + secret) plus the project ID.
-Three variables, and they cannot come from Infisical because they *are* the key
+Three variables, and they cannot come from Infisical because they are the key
 to Infisical.
 
 | Where | How it gets there |
@@ -25,11 +25,7 @@ cp .env.example .env
 ```
 
 `--env-file` wants plain `KEY=VALUE` lines. It is not a shell: no `export`, no
-quotes (they end up *in* the value), no `$VAR` expansion.
-
-`.env` holds three values and no more. If a Neon or Tigris credential ends up
-in here, the point of Infisical has been lost — it belongs in the project, and
-`load()` will put it in the environment.
+quotes (they end up in the value), no `$VAR` expansion.
 
 ## The contract
 
@@ -47,13 +43,6 @@ names are what each component looks for, not a fetch list.
 | `AWS_SECRET_ACCESS_KEY` | ingest, transform | Tigris secret key |
 | `AWS_ENDPOINT_URL_S3` | ingest, transform | Tigris endpoint — config, not a credential |
 
-Everything below the bootstrap rows comes from Infisical. Two of those five
-are not secrets at all — they ride along because `load()` fetches everything
-anyway, and they differ between your local dataset and the scheduled one.
-Adding a second config mechanism for two strings would cost more than it saves.
-
-**Prefect credentials are deliberately absent.** See the layering note below.
-
 The Tigris keys use the AWS-standard names because DuckDB's `httpfs` and dlt's
 s3 extra both read them natively. One set of names, no mapping layer.
 
@@ -63,7 +52,7 @@ runs.
 
 ## Infisical layout
 
-One project, environment slug `dev` (override with `INFISICAL_ENV`). Folders
+One project, environment slug `Development` (override with `INFISICAL_ENV`). Folders
 are for humans — `load()` reads recursively from `/` and does not care:
 
 ```
@@ -80,7 +69,7 @@ like a missing variable rather than a permissions error.
 Recorded because it is a once-a-project task that will have been forgotten by
 the time it is needed again.
 
-**1. Project.** Create one named `the-broke-lakehouse`. It ships with `Development`,
+**1. Project.** Create one named `<your project name>`. It ships with `Development`,
 `Staging` and `Production` environments; only `Development` is used. Leave the other two
 alone rather than deleting them — `INFISICAL_ENV` selects between them, so they
 cost nothing and removing them is irreversible.
@@ -98,7 +87,7 @@ exist yet: milestone 1 proves the plumbing, and empty strings travel through
 `load()` exactly like real values do.
 
 **5. Machine identity.** Organization → Access Control → Identities → *Create
-identity*. Name it `broke-lakehouse-runner` and give it the org role **No
+identity*. Name it `<your project name>-runner` and give it the org role **No
 Access** — org role governs organisation administration, and project access is
 granted separately in step 6.
 
@@ -108,7 +97,7 @@ put it straight into `.env`. The client ID stays visible on the identity page.
 Together these are `INFISICAL_CLIENT_ID` and `INFISICAL_CLIENT_SECRET`.
 
 **7. Grant project access.** Back in the project → Access Control → Identities
-→ *Add identity* → `broke-lakehouse-runner`, role **Viewer**.
+→ *Add identity* → `<your project name>-runner`, role **Viewer**.
 
 Step 7 is the one to double-check, as without it authentication still succeeds —
 the identity is real, the credentials are valid — and `list_secrets` simply
@@ -119,28 +108,3 @@ returns an empty list.
 Add it in the UI under the appropriate folder, then add it to `.env.example`
 if it is a bootstrap variable, or to the contract table above if it is not.
 No code changes: `load()` copies whatever the project contains.
-
-## Check
-
-```bash
-bl python -m helpers.infisical_env env | grep -E 'DUCKLAKE|AWS_'
-```
-
-Should return five lines. The three `INFISICAL_*` came from `.env`; these five came from
-Infisical — they appear nowhere else, so their presence confirms the login, the
-project grant and the recursive fetch in one go. Empty values are expected until Neon and Tigris are set up.
-
-## Why Prefect's credentials are not in here
-
-Each layer holds the credential for the next, and nothing reaches backwards:
-
-```
-Prefect  →  holds the Infisical machine identity (Secret block)
-Infisical  →  holds the Neon and Tigris credentials
-```
-
-On a scheduled run the managed worker is already authenticated before your code
-exists — Prefect injects `PREFECT_API_URL` and `PREFECT_API_KEY` into the run
-environment itself. Only then does the flow read its Secret block and call
-`load()`. A Prefect key arriving from Infisical would land two steps after
-anything could have used it.
