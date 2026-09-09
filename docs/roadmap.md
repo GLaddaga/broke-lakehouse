@@ -1,14 +1,14 @@
 # Roadmap
 
-Build order from empty repo to a scheduled pipeline. Each milestone lists what "done" means and which doc it produces. Docs are written when the milestone that proves them is finished — not before.
+Build order from empty repo to a scheduled pipeline. Each milestone lists what "done" means and which doc it produces.
 
-**Current position: milestone 1 done. Next: milestone 2, catalog + storage spike.**
+**Current position: milestone 1 under rework.**
 
 ## 0 — Skeleton
 
 Directory tree from CLAUDE.md, `requirements.txt`, `Containerfile`, `.gitignore`, first commit.
 
-Development happens in a Podman container, not a venv. The container mounts the repo and carries the whole environment — Python deps, the dlt/dbt/Prefect CLIs, and the DuckDB extensions.
+Development happens in a Podman container. The container mounts the repo and carries the whole environment — Python deps, the dlt/dbt/Prefect CLIs, and the DuckDB extensions.
 
 Done when: `podman build` produces an image, and a shell in that container can run `dlt --version` and `dbt --version` against the mounted repo.
 
@@ -16,11 +16,9 @@ Note the asymmetry to keep in mind from here on: the container defines the *loca
 
 ## 1 — Secrets
 
-Infisical project, a Universal Auth machine identity, and the env-var contract written down: which variable names `ingest/`, `transform/` and `orchestrate/` each expect, and which Infisical path they come from. The machine identity itself rides in a gitignored `.env` — there is no way to bootstrap a secret fetcher without one credential in the clear.
+Secrets are fetched through a thin Python wrapper of the Infisical SDK (`utils/secrets/infisical.py`). The module does not work as the CLI, just creates functions that will be used in Python.
 
-Done when: `python -m helpers.infisical_env env` shows the five Infisical variables, and the only secret on disk is the bootstrap identity in `.env`.
-
-The Infisical CLI is not used: Prefect's managed work pool installs pip packages only and cannot take a Go binary, so secrets are fetched with `infisicalsdk` and one code path serves both local and serverless.
+Done when: `utils/secrets/infisical.py` is unit tested via `pytest` in `test/secrets` folder on mock secrets in `Development` Infisical environment.
 
 Produces: `docs/secrets.md`.
 
