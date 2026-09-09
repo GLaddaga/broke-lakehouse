@@ -2,7 +2,7 @@
 
 Build order from empty repo to a scheduled pipeline. Each milestone lists what "done" means and which doc it produces.
 
-**Current position: milestone 1 under rework.**
+**Current position: milestone 1 reworked, milestone 2 to be started.**
 
 ## 0 — Skeleton
 
@@ -16,9 +16,9 @@ Note the asymmetry to keep in mind from here on: the container defines the *loca
 
 ## 1 — Secrets
 
-Secrets are fetched through a thin Python wrapper of the Infisical SDK (`utils/secrets/infisical.py`). The module does not work as the CLI, just creates functions that will be used in Python.
+Secrets are fetched through a thin Python wrapper of the Infisical SDK (`utils/infisical.py`). The module does not work as the CLI, just creates functions that will be used in Python.
 
-Done when: `utils/secrets/infisical.py` is unit tested via `pytest` in `test/secrets` folder on mock secrets in `Development` Infisical environment.
+Done when: `pytest` passes an integration check that tests client connection and fetches a known mock secret from the `Production` Infisical environment.
 
 Produces: `docs/secrets.md`.
 

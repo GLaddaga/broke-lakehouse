@@ -8,3 +8,4 @@ settings.local.json
 
 # Python
 __pycache__/
+.pytest_cache/
