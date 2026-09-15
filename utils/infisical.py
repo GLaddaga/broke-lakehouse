@@ -19,7 +19,12 @@ from infisical_sdk import InfisicalSDKClient
 def _client() -> InfisicalSDKClient:
     # ponytail: token cached for the process lifetime, no refresh — if a run ever
     # outlives the UA token TTL, catch the auth error, _client.cache_clear(), retry once.
-    client = InfisicalSDKClient(host="https://app.infisical.com")
+    # A project in the EU region answers on eu.infisical.com. The wrong host
+    # still authenticates and then returns nothing, so this is an override
+    # rather than a constant.
+    client = InfisicalSDKClient(
+        host=os.environ.get("INFISICAL_HOST", "https://app.infisical.com")
+    )
     client.auth.universal_auth.login(
         os.environ["INFISICAL_CLIENT_ID"],
         os.environ["INFISICAL_CLIENT_SECRET"],
