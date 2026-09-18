@@ -1,17 +1,17 @@
 # The Broke Lakehouse
 
-Cheap, reproducible lakehouse stack: dlt → dbt / DuckDB + DuckLake → Tigris, orchestrated by Prefect.
+Cheap, reproducible lakehouse stack: dlt → dbt / DuckDB + DuckLake → S3-compatible object storage, orchestrated by Prefect.
 
 ## Current state
 @docs/roadmap.md for the build status, order and known risks.
 
 ## Stack
 
-- **dlt** — ingestion. Writes to Tigris via the `ducklake` destination.
-- **Tigris (S3-compatible)** — object storage for DuckLake's Parquet data files.
+- **dlt** — ingestion. Writes to object storage via the `ducklake` destination.
+- **S3-compatible object storage** — DuckLake's Parquet data files. Any provider that speaks S3 with static access keys; Tigris today, R2 or plain S3 by changing values in Infisical, not code.
 - **Neon (Postgres)** — DuckLake catalog (schemas, snapshots, file stats).
 - **dbt** — transformation, via `dbt-duckdb` adapter attached to the DuckLake catalog.
-- **Infisical** — the data credentials (Tigris keys, Neon conn string).
+- **Infisical** — the data credentials (object-storage keys, Neon conn string).
 - **Prefect Cloud (free/Hobby tier, serverless work pool)** — orchestrator.
 - **Podman** — local development environment.
 

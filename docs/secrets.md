@@ -40,14 +40,17 @@ This is a table listing the secret names, whom they are used by and what they ar
 | `INFISICAL_CLIENT_SECRET` | bootstrap | machine identity, from `.env` |
 | `INFISICAL_PROJECT_ID` | bootstrap | project UUID, from `.env` |
 | `DUCKLAKE_CATALOG_URI` | ingest, transform | Neon Postgres connection string — the DuckLake catalog |
-| `DUCKLAKE_DATA_PATH` | ingest, transform | `s3://<bucket>/<prefix>` on Tigris — config, not a credential |
-| `AWS_ACCESS_KEY_ID` | ingest, transform | Tigris access key |
-| `AWS_SECRET_ACCESS_KEY` | ingest, transform | Tigris secret key |
-| `AWS_ENDPOINT_URL_S3` | ingest, transform | Tigris endpoint — config, not a credential |
+| `DUCKLAKE_DATA_PATH` | ingest, transform | `s3://<bucket>/<prefix>` — config, not a credential |
+| `AWS_ACCESS_KEY_ID` | ingest, transform | object-storage access key |
+| `AWS_SECRET_ACCESS_KEY` | ingest, transform | object-storage secret key |
+| `AWS_ENDPOINT_URL_S3` | ingest, transform | object-storage endpoint — config, not a credential. The only variable that names the provider; unset for real AWS S3 |
+| `AWS_REGION` | ingest, transform | `auto` for Tigris and R2, a real region for AWS S3 — config, not a credential |
 | `TEST_SECRET` | tests | mock value `it-works` — proves the fetch path, nothing else reads it |
 
-The Tigris keys use the AWS-standard names because DuckDB's `httpfs` and dlt's
-s3 extra both read them natively. One set of names, no mapping layer.
+The object-storage keys use the AWS-standard names because DuckDB's `httpfs` and
+dlt's s3 extra both read them natively. One set of names, no mapping layer — and
+no provider named anywhere in code, so moving from Tigris to R2 or plain S3 is a
+change of values in Infisical rather than a change of code.
 
 dlt and dbt also accept their own `DESTINATION__…` / profile-level env vars.
 Those get pinned down in milestones 3 and 4, against something that actually

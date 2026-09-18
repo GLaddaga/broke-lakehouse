@@ -24,7 +24,7 @@ Produces: `docs/secrets.md`.
 
 ## 2 — Catalog + storage spike
 
-Neon project, Tigris bucket, and a throwaway script proving DuckDB can attach the DuckLake catalog on Neon with the data path on Tigris, then write and read back one Parquet file.
+Neon project, a bucket on an S3-compatible store (Tigris for now), and a throwaway script proving DuckDB can attach the DuckLake catalog on Neon with the data path on that bucket, then write and read back one Parquet file.
 
 Done when: a table written in one process is readable from a second, fresh process — which proves the catalog, not just local state.
 
@@ -62,7 +62,7 @@ Produces: `docs/operations.md`.
 
 ## 7 — Maintenance
 
-Snapshot expiry, old-file cleanup, first look at actual spend across Neon, Tigris and Prefect.
+Snapshot expiry, old-file cleanup, first look at actual spend across Neon, object storage and Prefect.
 
 Done when: there is a scheduled cleanup and a number for what the stack costs per month.
 
@@ -74,7 +74,7 @@ Produces: `docs/gotchas.md`, once there is real operational experience to write 
 
 Verified during planning (2026-08-23). Each is attached to the milestone where it will bite.
 
-**Milestone 4 is the riskiest step in this plan.** `dbt-duckdb`'s documented DuckLake support (`is_ducklake: true`) is MotherDuck-specific. Attaching a *self-hosted* DuckLake — Neon catalog, Tigris data path — has to go through the generic `attach:` / `extensions:` / `secrets:` mechanism and is not a documented path. Treat it as a spike, not a config task, and budget accordingly.
+**Milestone 4 is the riskiest step in this plan.** `dbt-duckdb`'s documented DuckLake support (`is_ducklake: true`) is MotherDuck-specific. Attaching a *self-hosted* DuckLake — Neon catalog, S3-compatible data path — has to go through the generic `attach:` / `extensions:` / `secrets:` mechanism and is not a documented path. Treat it as a spike, not a config task, and budget accordingly.
 → [dbt-duckdb README](https://github.com/duckdb/dbt-duckdb/blob/master/README.md)
 
 **dlt's own dbt runner does not support the DuckLake destination.** This constrains only dlt's built-in dbt helper, not `dbt-duckdb` invoked separately — which is the design here. Noted so nobody reaches for the helper and concludes the stack is broken.
@@ -85,5 +85,5 @@ Verified during planning (2026-08-23). Each is attached to the milestone where i
 
 **Neon free-tier compute autosuspends.** The catalog is load-bearing for every query, so the first query after idle pays a cold start. Relevant to flow timeouts in milestone 6.
 
-**Tigris is a single global endpoint with access-key pairs only** — no STS, no session tokens. This shapes how DuckDB's S3 secret is configured in milestone 2.
-→ [Tigris dlt guide](https://www.tigrisdata.com/docs/guides/dlt/)
+**The non-AWS S3 stores offer access-key pairs only** — no STS, no session tokens. This shapes how DuckDB's S3 secret is configured in milestone 2: a plain `TYPE S3` secret with `key_id` / `secret` / `endpoint` / `region`, no credential-chain provider. Tigris is one global endpoint and R2 is per-account, but both take `region=auto` and neither needs its own DuckDB secret type, so the difference between them is three values. Confirm in milestone 2 whether either needs `url_style=path`; AWS S3 is then the odd one out, with a real region and no endpoint override.
+→ [Tigris dlt guide](https://www.tigrisdata.com/docs/guides/dlt/) · [R2 S3 API](https://developers.cloudflare.com/r2/api/s3/api/)
