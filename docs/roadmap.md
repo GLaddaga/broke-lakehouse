@@ -2,7 +2,7 @@
 
 Build order from empty repo to a scheduled pipeline. Each milestone lists what "done" means and which doc it produces.
 
-**Current position: milestone 1 reworked, milestone 2 to be started.**
+**Current position: milestone 2 done — `prod` initialised, milestone 3 next.**
 
 ## 0 — Skeleton
 
@@ -28,9 +28,15 @@ Neon project, a bucket on an S3-compatible store (Tigris for now), and a throwaw
 
 Done when: a table written in one process is readable from a second, fresh process — which proves the catalog, not just local state.
 
-Produces: `docs/architecture.md`.
+Produces: `docs/data-storage.md`.
 
 This is the foundation spike. Nothing downstream is worth attempting until it passes.
+
+`tests/test_ducklake.py` does the round trip and tears itself
+down; `utils.lakehouse initialise('prod')` then created the catalog for real, with
+`data_inlining_row_limit` persisted to 0 so every later client writes Parquet
+rather than rows into Neon. The test skips from here on, by design — it needs an
+empty lakehouse, so its remaining job is validating each *new* environment.
 
 ## 3 — First dlt pipeline
 
@@ -85,5 +91,5 @@ Verified during planning (2026-08-23). Each is attached to the milestone where i
 
 **Neon free-tier compute autosuspends.** The catalog is load-bearing for every query, so the first query after idle pays a cold start. Relevant to flow timeouts in milestone 6.
 
-**The non-AWS S3 stores offer access-key pairs only** — no STS, no session tokens. This shapes how DuckDB's S3 secret is configured in milestone 2: a plain `TYPE S3` secret with `key_id` / `secret` / `endpoint` / `region`, no credential-chain provider. Tigris is one global endpoint and R2 is per-account, but both take `region=auto` and neither needs its own DuckDB secret type, so the difference between them is three values. Confirm in milestone 2 whether either needs `url_style=path`; AWS S3 is then the odd one out, with a real region and no endpoint override.
+**The non-AWS S3 stores offer access-key pairs only** — no STS, no session tokens. This shapes how DuckDB's S3 secret is configured in milestone 2: a plain `TYPE S3` secret with `key_id` / `secret` / `endpoint` / `region`, no credential-chain provider. Tigris is one global endpoint and R2 is per-account, but both take `region=auto` and neither needs its own DuckDB secret type, so the difference between them is three values. Answered in milestone 2 for Tigris: `URL_STYLE 'vhost'` with `REGION 'auto'` and the endpoint as a bare host, confirmed by a passing round trip. R2 and AWS S3 are unverified, and AWS S3 is the odd one out anyway, with a real region and no endpoint override.
 → [Tigris dlt guide](https://www.tigrisdata.com/docs/guides/dlt/) · [R2 S3 API](https://developers.cloudflare.com/r2/api/s3/api/)

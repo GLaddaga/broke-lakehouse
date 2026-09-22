@@ -4,7 +4,8 @@ Hits the real Infisical API. Two tests, split so the failure tells you where
 to look: the first covers Universal Auth login, the second covers the project
 grant, the environment slug and the secret path.
 
-Needs a mock secret in the `Production` environment, at the root path:
+Needs a mock secret at the root path of whichever environment is under test
+(`--lakehouse-env`, default `prod`):
 
     TEST_SECRET = it-works
 
@@ -29,7 +30,7 @@ def test_login_succeeds():
     assert _client() is not None
 
 
-def test_returns_known_value():
+def test_returns_known_value(environment):
     # Green above and red here means auth worked but the read did not —
     # usually the identity is missing the project grant.
-    assert get_secret("TEST_SECRET", environment="prod") == EXPECTED
+    assert get_secret("TEST_SECRET", environment=environment) == EXPECTED

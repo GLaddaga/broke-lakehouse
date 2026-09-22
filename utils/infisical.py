@@ -32,8 +32,15 @@ def _client() -> InfisicalSDKClient:
     return client
 
 
+@lru_cache(maxsize=None)
 def get_secret(name: str, *, environment: str) -> str:
-    """Fetch a single secret value. Never log or print the result."""
+    """Fetch a single secret value. Never log or print the result.
+
+    Cached per (name, environment) for the process lifetime: one `attach()` costs
+    six API calls, and `initialise --force` attaches three times over. A value
+    rotated mid-process is not picked up — call `get_secret.cache_clear()`, as the
+    tests do for `_client`.
+    """
     client = _client()
     return client.secrets.get_secret_by_name(
         secret_name=name,
