@@ -153,6 +153,18 @@ this is the line to try `path` on.
 transaction mode, which discards session-level prepared statements. DuckDB's
 postgres extension uses them.
 
+### Layout in the bucket
+
+DuckLake writes exactly two levels below the data path, and the shape is not
+configurable through naming:
+
+```
+s3://<bucket>/<environment>/<schema>/<table>/ducklake-<uuid>.parquet
+```
+
+So the layer hierarchy has to live in the schema and table names — which is what
+@docs/conventions.md fixes.
+
 ### About data inlining
 
 DuckLake can store a write as rows in the catalog database instead of as a

@@ -31,7 +31,7 @@ the-broke-lakehouse/
 │   ├── pipelines/              # dlt pipeline definitions
 │   └── dlt.config.toml
 │
-├── transform/                  # dbt project — models raw data into staging/marts
+├── transform/                  # dbt project — models raw into bronze/silver/gold
 │   ├── models/
 │   ├── dbt_project.yml
 │   └── profiles.yml
@@ -44,29 +44,8 @@ the-broke-lakehouse/
 └── README.md
 ```
 
-## Data Engineering Conventions
-
-**Environment**
-- One `requirements.txt` at the repo root for `orchestrate/`, `ingest/` and `transform/`.
-- Local development runs only in a Podman container that mounts the repo.
-- The Containerfile installs from `requirements.txt` and pins nothing of its own. Prefect's managed work pool installs from that same file at run time and cannot take a custom image, so `requirements.txt` is the only place dependencies are declared — anything pinned solely in the Containerfile drifts from what actually runs in the cloud.
-
-**Naming**
-<!-- TBD -->
-
-**Materializations**
-<!-- TBD -->
-
-**No data quality tests**
-- Deliberately skipped to save compute. Can be reconsidered at a later stage.
-
-**Secrets**
-- A thin Python wrapper retrieves secrets from Infisical using SDK.
-- @docs/secrets.md
-
-**Data Flow**
-- `orchestrate/` calls into `ingest/` and `transform/` directly — same environment, so imports or CLI calls both work.
-- Data passes between stages via the warehouse only.
+## Conventions
+@docs/conventions.md for the layers, naming, environment and data-flow rules.
 
 ## DevOps
 <!-- TBD -->
@@ -75,6 +54,5 @@ the-broke-lakehouse/
 - Claude defaults to suggestion and review, proposes changes in chat and does not write files unless asked. The human does the development.
 - Prefer amending what exists over adding a layer on top of it.
 - Flag over-engineering in review even when the code is correct.
-- dlt writes only to raw tables. dbt reads raw, writes staging/marts, all within the same DuckLake catalog.
 - No secret hardcoded or in a committed file. Everything pulled from Infisical at runtime. The Infisical machine identity (Universal Auth client ID/secret, plus the project ID) — in Prefect a Secret block, locally a gitignored `.env` injected by `podman --env-file`. `.env.example` carries the structure with no values.
 - No always-on process, no laptop-as-scheduler. Prefect's serverless work pool runs the flow on schedule; nothing runs in between.
