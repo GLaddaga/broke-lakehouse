@@ -25,6 +25,7 @@ import pytest
 
 from utils.infisical import get_secrets
 from utils.lakehouse import (
+    _assert_no_inlining,
     _sql,
     NAMES,
     _confirm,
@@ -152,3 +153,23 @@ def test_roundtrip(environment):
     assert not objects, f"left {len(objects)} object(s) in the bucket: {objects}"
     assert not tables, f"left {len(tables)} ducklake_* table(s) in Neon: {tables}"
     pg.close()
+
+
+def test_guard_refuses_a_catalog_without_the_inlining_option(tmp_path):
+    """
+    The regression that the round trip above cannot catch: it runs only against
+    a lake that does not exist yet, so a *live* lake whose option went missing —
+    purged and then reopened by a bare attach — would go unnoticed until rows
+    turned up in the catalog. Local DuckDB catalog, no credentials, always runs.
+    """
+    con = duckdb.connect()
+    con.load_extension("ducklake")
+    con.sql(f"ATTACH 'ducklake:{tmp_path}/cat.duckdb' AS lake "
+            f"(DATA_PATH '{tmp_path}/data/')")
+
+    with pytest.raises(RuntimeError, match="data_inlining_row_limit"):
+        _assert_no_inlining(con)  # a bare attach persists no option at all
+
+    con.sql("CALL lake.set_option('data_inlining_row_limit', 0)")
+    _assert_no_inlining(con)  # and passes once initialise() would have set it
+    con.close()

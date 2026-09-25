@@ -87,7 +87,17 @@ def _pg(secrets: dict[str, str]) -> duckdb.DuckDBPyConnection:
     return con
 
 
-def attach(environment: str) -> duckdb.DuckDBPyConnection:
+def _assert_no_inlining(con: duckdb.DuckDBPyConnection) -> None:
+    """
+    Refuse a lakehouse that would write rows into Neon instead of Parquet.
+    """
+    if con.sql("SELECT value FROM lake.options() WHERE scope = 'GLOBAL' "
+               "AND option_name = 'data_inlining_row_limit'").fetchall() != [("0",)]:
+        raise RuntimeError(
+            "data_inlining_row_limit is not 0")
+
+
+def attach(environment: str, *, verify: bool = True) -> duckdb.DuckDBPyConnection:
     """The two statements from docs/data-storage.md, nothing else."""
     secrets = get_secrets(NAMES, environment=environment)
     con = duckdb.connect()
@@ -113,7 +123,45 @@ def attach(environment: str) -> duckdb.DuckDBPyConnection:
                    (DATA_PATH {_sql(f"s3://{bucket}/{prefix}")})""")
     except duckdb.Error as e:
         raise _redact(e, secrets["DUCKLAKE_CATALOG_URI"]) from None
+    if verify:
+        _assert_no_inlining(con)
     return con
+
+
+def destination(environment: str):
+    """
+    The same lakehouse, expressed as a dlt destination.
+
+    dlt issues its own ATTACH, so it never passes through attach() — hence the
+    throwaway connection, which is what applies the inlining guard to the one
+    path that actually writes bulk data. One Neon round trip per pipeline run.
+    """
+    from dlt.common.configuration.specs import AwsCredentials
+    from dlt.common.storages.configuration import FilesystemConfiguration
+    from dlt.destinations import ducklake
+    from dlt.destinations.impl.ducklake.configuration import DuckLakeCredentials
+
+    attach(environment).close()
+
+    secrets = get_secrets(NAMES, environment=environment)
+    bucket, prefix = _path(secrets)
+    return ducklake(
+        credentials=DuckLakeCredentials(
+            ducklake_name="lake",
+            metadata_schema="public",
+            catalog=secrets["DUCKLAKE_CATALOG_URI"],
+            storage=FilesystemConfiguration(
+                bucket_url=f"s3://{bucket}/{prefix}",
+                credentials=AwsCredentials(
+                    aws_access_key_id=secrets["AWS_ACCESS_KEY_ID"],
+                    aws_secret_access_key=secrets["AWS_SECRET_ACCESS_KEY"],
+                    region_name=secrets["AWS_REGION"],
+                    endpoint_url=secrets["AWS_ENDPOINT_URL_S3"],
+                    s3_url_style="vhost",
+                ),
+            ),
+        )
+    )
 
 
 def survey(secrets: dict[str, str]) -> tuple[list[str], list[str]]:
@@ -126,10 +174,6 @@ def survey(secrets: dict[str, str]) -> tuple[list[str], list[str]]:
     # count objects belonging to another environment.
     pages = _s3(secrets).get_paginator("list_objects_v2").paginate(
         Bucket=bucket, Prefix=prefix)
-    # The bare prefix is not content. Creating the folder in a storage console
-    # leaves a zero-byte object keyed exactly `prod/`, while S3 prefixes are
-    # virtual and DuckLake never needs one — so counting it would make a bucket
-    # built through the UI look non-empty forever, and initialise() refuse it.
     objects = sorted(o["Key"] for p in pages for o in p.get("Contents", [])
                      if o["Key"] != prefix)
 
@@ -147,9 +191,6 @@ def initialise(environment: str, *, force: bool = False) -> None:
     """
     secrets = get_secrets(NAMES, environment=environment)
     bucket, prefix = _path(secrets)
-    # The prefix has to be the environment's own: a mismatch means the wrong
-    # environment's secrets, or a typo about to be written into the catalog for
-    # good. This is also what keeps `dev` from being initialised over `prod/`.
     if prefix != f"{environment}/":
         raise RuntimeError(
             f"DUCKLAKE_DATA_PATH is s3://{bucket}/{prefix}, expected the {environment}/ "
@@ -162,9 +203,8 @@ def initialise(environment: str, *, force: bool = False) -> None:
                            f"initialise: {len(tables)} table(s) in Neon, {len(objects)} "
                            f"object(s) in the bucket — `survey {environment}` lists them")
 
-    con = attach(environment)  # the first attach is what creates the ducklake_* tables
-    # No table_name/schema_name, so this is the global scope: one row in
-    # ducklake_metadata, read by every connection from now on.
+
+    con = attach(environment, verify=False)
     con.sql("CALL lake.set_option('data_inlining_row_limit', 0)")
     con.close()
 
@@ -206,7 +246,7 @@ def purge(environment: str) -> tuple[list[str], list[str]]:
     secrets = get_secrets(NAMES, environment=environment)
     tables, objects = survey(secrets)
     if not tables and not objects:
-        return [], []  # nothing to destroy, so nothing to confirm
+        return [], []
     _show(environment, tables, objects)
     _confirm(environment)
 
@@ -252,8 +292,6 @@ def _empty(con: duckdb.DuckDBPyConnection) -> None:
         con.sql(f'DROP SCHEMA lake."{schema}"')  # dlt's `raw` and the like
     con.sql("CALL ducklake_expire_snapshots('lake', older_than => now())")
     con.sql("CALL ducklake_cleanup_old_files('lake', cleanup_all => true)")
-    # Files no snapshot ever recorded — a write that failed halfway. Without this
-    # a reset lake could still hold objects that survey() counts.
     con.sql("CALL ducklake_delete_orphaned_files('lake', cleanup_all => true)")
 
 
@@ -265,10 +303,10 @@ def reset(environment: str) -> list[str]:
     Same end state as `purge` then `initialise`, without the moment in between
     when there is no catalog. Asks first, like purge — it destroys every table.
     """
-    con = attach(environment)
+    con = attach(environment, verify=False)
     try:
         found = [f"{kind.lower():5}  {schema}.{name}" for kind, schema, name in _contents(con)]
-        if found:  # nothing to confirm otherwise, but still expire and clean up
+        if found:
             _list(f"{environment}: {len(found)} table(s) and view(s) in the lakehouse", found)
             _confirm(environment)
         _empty(con)
@@ -293,8 +331,6 @@ if __name__ == "__main__":
         if args.command == "survey":
             tables, objects = survey(get_secrets(NAMES, environment=env))
             _show(env, tables, objects)
-            # 0 empty, 1 occupied — so `survey && initialise` reads as a sentence
-            # and a script need not parse the listing.
             sys.exit(1 if tables or objects else 0)
         elif args.command == "initialise":
             initialise(env, force=args.force)
