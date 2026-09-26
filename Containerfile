@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Bake the DuckDB extensions in so containers don't fetch them on every start.
 # ducklake: the lakehouse format;  httpfs: S3-compatible object storage;
-# postgres: the Neon-backed catalog.
-RUN python -c "import duckdb; duckdb.sql('INSTALL ducklake; INSTALL httpfs; INSTALL postgres;')"
+# postgres: the Neon-backed catalog;  tpch: the dbgen data generator.
+RUN python -c "import duckdb; duckdb.sql('INSTALL ducklake; INSTALL httpfs; INSTALL postgres; INSTALL tpch;')"
 
 CMD ["bash"]
