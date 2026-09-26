@@ -1,0 +1,11 @@
+name: lakehouse
+profile: lakehouse
+
+models:
+  lakehouse:
+    bronze:
+      +schema: bronze
+      +materialized: table
+
+flags:
+  send_anonymous_usage_stats: false  # no events to dbt Labs, no .user.yml in transform/

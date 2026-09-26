@@ -1,0 +1,22 @@
+# One target per environment, named after it, and no `target:` default: which
+# lakehouse a run builds into is chosen on the command line (`--target prod`).
+# No credentials here — the plugin fetches them from Infisical. @docs/transformation.md
+lakehouse:
+  outputs:
+    prod:
+      type: duckdb
+      database: lake
+      schema: main # for models with no layer
+      threads: 1
+      module_paths: [".."]  # the repo root, so `utils` imports from transform/
+      plugins:
+        - module: utils.dbt_plugin
+          config:
+            environment: prod
+      # Already attached by the plugin, so this ATTACH IF NOT EXISTS is a no-op.
+      # It is here because it is how dbt-duckdb learns that `lake` is an attached
+      # database and a DuckLake one — `database: lake` is refused otherwise, and
+      # DuckLake needs its own DROP (no CASCADE).
+      attach:
+        - path: "ducklake:"
+          alias: lake

@@ -9,3 +9,8 @@ settings.local.json
 # Python
 __pycache__/
 .pytest_cache/
+
+# dbt
+transform/target/
+transform/logs/
+transform/dbt_packages/

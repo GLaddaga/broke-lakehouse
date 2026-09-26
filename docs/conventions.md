@@ -55,7 +55,10 @@ like production. @docs/data-storage.md
 
 ## Materializations
 
-<!-- TBD -->
+**`bronze` is `table`.** Built once per run, read as Parquet by everything
+downstream, rather than a view that re-reads `raw` on every query. The cost is a
+full rewrite per run and old files left for the cleanup job. `silver` and `gold`
+are decided when they exist. @docs/transformation.md
 
 ## No data quality tests
 

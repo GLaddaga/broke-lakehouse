@@ -109,8 +109,9 @@ is where `utils/infisical.py` reads from.
 
 ### Ingredients
 
-Two statements per client. dlt's `ducklake` destination and dbt's `profiles.yml`
-must produce the same pair. `attach()` in `utils/lakehouse.py` is the reference implementation.
+Two statements per client. `attach()` in `utils/lakehouse.py` is the reference
+implementation; dlt's `ducklake` destination must produce the same pair, and dbt
+runs `attach()` itself through `utils/dbt_plugin.py`.
 
 ```sql
 CREATE OR REPLACE SECRET storage (
@@ -161,6 +162,9 @@ configurable through naming:
 ```
 s3://<bucket>/<environment>/<schema>/<table>/ducklake-<uuid>.parquet
 ```
+
+The `<table>` is the name at creation. dbt builds tables as `<name>__dbt_tmp`
+and renames them, so its files sit under that name instead. @docs/transformation.md
 
 So the layer hierarchy has to live in the schema and table names — which is what
 @docs/conventions.md fixes.

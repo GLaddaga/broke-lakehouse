@@ -1,0 +1,6 @@
+sources:
+  - name: raw
+    database: lake
+    schema: raw
+    tables:
+      - name: orders__tpch

@@ -53,8 +53,8 @@ no provider named anywhere in code, so moving from Tigris to R2 or plain S3 is a
 change of values in Infisical rather than a change of code.
 
 dlt and dbt also accept their own `DESTINATION__…` / profile-level env vars.
-Those get pinned down in milestones 3 and 4, against something that actually
-runs.
+Neither uses them: dlt gets its credentials from `destination()`, and dbt from
+`attach()` through `utils/dbt_plugin.py`, so `profiles.yml` holds no secrets.
 
 ## Setting this up in the Infisical UI
 

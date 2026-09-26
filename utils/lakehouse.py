@@ -97,10 +97,16 @@ def _assert_no_inlining(con: duckdb.DuckDBPyConnection) -> None:
             "data_inlining_row_limit is not 0")
 
 
-def attach(environment: str, *, verify: bool = True) -> duckdb.DuckDBPyConnection:
-    """The two statements from docs/data-storage.md, nothing else."""
+def attach(environment: str, *, verify: bool = True,
+           con: duckdb.DuckDBPyConnection | None = None) -> duckdb.DuckDBPyConnection:
+    """The two statements from docs/data-storage.md, nothing else.
+
+    On a fresh connection by default, or on `con` when the caller owns one —
+    dbt-duckdb does, and hands it over through `utils/dbt_plugin.py`.
+    """
     secrets = get_secrets(NAMES, environment=environment)
-    con = duckdb.connect()
+    if con is None:
+        con = duckdb.connect()
     for extension in ("ducklake", "httpfs", "postgres"):
         con.load_extension(extension)
     # PROVIDER config with the key pair passed directly: the non-AWS S3 stores

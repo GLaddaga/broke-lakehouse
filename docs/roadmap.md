@@ -2,7 +2,7 @@
 
 Build order from empty repo to a scheduled pipeline. Each milestone lists what "done" means and which doc it produces.
 
-**Current position: milestone 2 done — `prod` initialised, milestone 3 next.**
+**Current position: milestone 4 done against the TPC-H load; milestone 3 (`ingest/pipelines/tpch.py`) still under review.**
 
 ## 0 — Skeleton
 
@@ -52,11 +52,17 @@ Done when: `dbt run` builds the model and the output is queryable from a plain D
 
 No tests — see the conventions in CLAUDE.md.
 
+Passed against `raw.orders__tpch` at sf 0.01: `dbt run --target prod` builds
+`bronze.orders__tpch`, a second run rebuilds it, and a fresh `attach('prod')`
+reads the same 15,000 rows. The attach goes through `utils/dbt_plugin.py`, which
+hands dbt-duckdb's connection to `attach()` — one implementation for every
+client. @docs/transformation.md
+
 ## 5 — Prefect flows
 
-`ingest_flow` and `transform_flow` wrapping milestones 3 and 4, plus `pipeline_flow` chaining them. Run locally, reporting to Prefect Cloud.
+`ingest_flow` and `transform_flow` wrapping milestones 3 and 4, plus `pipeline_flow` chaining them. Run locally for now.
 
-Done when: `pipeline_flow` completes locally end to end and the run appears in Prefect Cloud.
+Done when: `pipeline_flow` completes locally end to end.
 
 ## 6 — Serverless deployment
 
@@ -77,14 +83,6 @@ Produces: `docs/gotchas.md`, once there is real operational experience to write 
 ---
 
 ## Known risks
-
-Verified during planning (2026-08-23). Each is attached to the milestone where it will bite.
-
-**Milestone 4 is the riskiest step in this plan.** `dbt-duckdb`'s documented DuckLake support (`is_ducklake: true`) is MotherDuck-specific. Attaching a *self-hosted* DuckLake — Neon catalog, S3-compatible data path — has to go through the generic `attach:` / `extensions:` / `secrets:` mechanism and is not a documented path. Treat it as a spike, not a config task, and budget accordingly.
-→ [dbt-duckdb README](https://github.com/duckdb/dbt-duckdb/blob/master/README.md)
-
-**dlt's own dbt runner does not support the DuckLake destination.** This constrains only dlt's built-in dbt helper, not `dbt-duckdb` invoked separately — which is the design here. Noted so nobody reaches for the helper and concludes the stack is broken.
-→ [dlt DuckLake destination](https://dlthub.com/docs/dlt-ecosystem/destinations/ducklake)
 
 **Prefect Cloud's free tier allows 1 concurrent flow run per workspace** across managed pools (5 pools maximum). The planned `ingest-only` / `transform-only` / `full-pipeline` deployments therefore cannot overlap — stagger the schedules in milestone 6.
 → [Prefect managed infrastructure](https://docs.prefect.io/3.0/deploy/infrastructure-examples/managed)
