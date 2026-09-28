@@ -3,4 +3,8 @@ sources:
     database: lake
     schema: raw
     tables:
+      - name: customer__tpch
+      - name: lineitem__tpch
+      - name: nation__tpch
       - name: orders__tpch
+      - name: region__tpch

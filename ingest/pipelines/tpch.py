@@ -53,7 +53,7 @@ def tpch(database: Path):
         con.close()
 
     return [
-        dlt.resource(batches(table), name=f"{table}__tpch", write_disposition="append")
+        dlt.resource(batches(table), name=f"{table}__tpch", write_disposition="replace")
         for table in TABLES
     ]
 

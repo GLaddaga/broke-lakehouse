@@ -34,6 +34,9 @@ now".** DuckLake expresses the upsert as delete plus insert, so data files
 get rewritten and delete files accumulate, and dlt stages the whole incoming 
 load in `raw_staging` first.
 
+**`replace` is for generated fixtures only**, data that is
+regenerated whole each run and has no cursor. Each run rewrites the table.
+
 **`raw_staging` is not ours, it is dlt-managed.**
 
 **`archive` gets its own bucket**, not a prefix inside the lakehouse bucket.
@@ -57,8 +60,12 @@ like production. @docs/data-storage.md
 
 **`bronze` is `table`.** Built once per run, read as Parquet by everything
 downstream, rather than a view that re-reads `raw` on every query. The cost is a
-full rewrite per run and old files left for the cleanup job. `silver` and `gold`
-are decided when they exist. @docs/transformation.md
+full rewrite per run and old files left for the cleanup job.
+
+**`silver` and `gold` are `table` too**, for the same reason: `gold` is what gets
+queried most, and a view there would re-run the joins over `silver` on every
+read. The first model to outgrow a full rebuild becomes `incremental`.
+@docs/transformation.md
 
 ## No data quality tests
 

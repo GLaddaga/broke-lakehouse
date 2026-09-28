@@ -6,6 +6,12 @@ models:
     bronze:
       +schema: bronze
       +materialized: table
+    silver:
+      +schema: silver
+      +materialized: table
+    gold:
+      +schema: gold
+      +materialized: table
 
 flags:
   send_anonymous_usage_stats: false  # no events to dbt Labs, no .user.yml in transform/

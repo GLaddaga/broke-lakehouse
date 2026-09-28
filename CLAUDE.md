@@ -28,8 +28,7 @@ the-broke-lakehouse/
 │
 ├── ingest/                     # dlt project — extracts raw data into the warehouse
 │   ├── sources/                # source definitions (API, DB connectors, etc.)
-│   ├── pipelines/              # dlt pipeline definitions
-│   └── dlt.config.toml
+│   └── pipelines/              # dlt pipeline definitions
 │
 ├── transform/                  # dbt project — models raw into bronze/silver/gold
 │   ├── models/
