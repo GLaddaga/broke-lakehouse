@@ -54,7 +54,7 @@ change of values in Infisical rather than a change of code.
 
 dlt and dbt also accept their own `DESTINATION__…` / profile-level env vars.
 Neither uses them: dlt gets its credentials from `destination()`, and dbt from
-`attach()` through `utils/dbt_plugin.py`, so `profiles.yml` holds no secrets.
+`credentials()` through `utils/dbt_plugin.py`, so `profiles.yml` holds no secrets.
 
 ## Setting this up in the Infisical UI
 
@@ -107,8 +107,9 @@ podman run --env-file .env --rm \
   localhost/the-broke-lakehouse python -m pytest tests/test_infisical.py --verbose
 ```
 
-`python -m pytest` rather than bare `pytest`: it puts the working directory on
-`sys.path`, which is what makes `import utils` resolve from `/workspace`.
+`import utils` resolves from any working directory: the image installs the repo
+as an editable package (`-e .` in `requirements.txt`, `pyproject.toml`), pointing
+at `/workspace/utils`, which is where the mount puts the live code.
 
 `test_login_succeeds` covers the credentials and the host; `test_returns_known_value`
 covers step 7 and the environment slug. Both skip when `.env` is absent.

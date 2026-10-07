@@ -13,7 +13,7 @@ lakehouse a command touches — and that belongs in the command, visibly.
 
 import argparse
 import sys
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, unquote, urlparse
 
 import boto3
 import duckdb
@@ -97,16 +97,14 @@ def _assert_no_inlining(con: duckdb.DuckDBPyConnection) -> None:
             "data_inlining_row_limit is not 0")
 
 
-def attach(environment: str, *, verify: bool = True,
-           con: duckdb.DuckDBPyConnection | None = None) -> duckdb.DuckDBPyConnection:
-    """The two statements from docs/data-storage.md, nothing else.
+def credentials(environment: str, con: duckdb.DuckDBPyConnection) -> None:
+    """The three secrets from docs/data-storage.md, on `con`: everything the
+    attach needs, so that the attach itself carries no credential.
 
-    On a fresh connection by default, or on `con` when the caller owns one —
-    dbt-duckdb does, and hands it over through `utils/dbt_plugin.py`.
+    Split from attach() for dbt-duckdb, which runs the ATTACH itself from
+    `profiles.yml` once `utils/dbt_plugin.py` has called this.
     """
     secrets = get_secrets(NAMES, environment=environment)
-    if con is None:
-        con = duckdb.connect()
     for extension in ("ducklake", "httpfs", "postgres"):
         con.load_extension(extension)
     # PROVIDER config with the key pair passed directly: the non-AWS S3 stores
@@ -122,13 +120,37 @@ def attach(environment: str, *, verify: bool = True,
             REGION   {_sql(secrets["AWS_REGION"])},
             URL_STYLE 'vhost'
         )""")
-    try:
-        bucket, prefix = _path(secrets)  # normalised, so the recorded path ends in /
-        con.sql(f"""
-            ATTACH {_sql("ducklake:postgres:" + secrets["DUCKLAKE_CATALOG_URI"])} AS lake
-                   (DATA_PATH {_sql(f"s3://{bucket}/{prefix}")})""")
-    except duckdb.Error as e:
-        raise _redact(e, secrets["DUCKLAKE_CATALOG_URI"]) from None
+    # The catalog URI as a postgres secret, one libpq keyword per part: DuckDB
+    # redacts PASSWORD and leaves it out of connect errors, which a URI inside
+    # the ATTACH or METADATA_PATH would echo whole.
+    uri = urlparse(secrets["DUCKLAKE_CATALOG_URI"])
+    if uri.scheme not in ("postgresql", "postgres"):
+        raise RuntimeError("DUCKLAKE_CATALOG_URI is not a postgresql:// URI")
+    catalog = {"HOST": uri.hostname, "PORT": uri.port and str(uri.port),
+               "DBNAME": uri.path.lstrip("/"), "USER": unquote(uri.username or ""),
+               "PASSWORD": unquote(uri.password or ""),
+               **{key.upper(): value for key, value in parse_qsl(uri.query)}}
+    con.sql(f"""
+        CREATE OR REPLACE SECRET catalog (
+            TYPE postgres,
+            {", ".join(f"{key} {_sql(value)}" for key, value in catalog.items() if value)}
+        )""")
+    # Named `lake`, like the database, and attached as `ducklake:lake`.
+    bucket, prefix = _path(secrets)  # normalised, so the recorded path ends in /
+    con.sql(f"""
+        CREATE OR REPLACE SECRET lake (
+            TYPE ducklake,
+            METADATA_PATH '',
+            METADATA_PARAMETERS MAP {{'TYPE': 'postgres', 'SECRET': 'catalog'}},
+            DATA_PATH {_sql(f"s3://{bucket}/{prefix}")}
+        )""")
+
+
+def attach(environment: str, *, verify: bool = True) -> duckdb.DuckDBPyConnection:
+    """The secrets and the ATTACH from docs/data-storage.md, nothing else."""
+    con = duckdb.connect()
+    credentials(environment, con)
+    con.sql("ATTACH 'ducklake:lake' AS lake")
     if verify:
         _assert_no_inlining(con)
     return con

@@ -54,9 +54,9 @@ No tests — see the conventions in CLAUDE.md.
 
 Passed against `raw.orders__tpch` at sf 0.01: `dbt run --target prod` builds
 `bronze.orders__tpch`, a second run rebuilds it, and a fresh `attach('prod')`
-reads the same 15,000 rows. The attach goes through `utils/dbt_plugin.py`, which
-hands dbt-duckdb's connection to `attach()` — one implementation for every
-client. @docs/transformation.md
+reads the same 15,000 rows. `utils/dbt_plugin.py` creates the secrets with
+`credentials()`, the code `attach()` uses, and `profiles.yml` runs the
+credential-free `ATTACH 'ducklake:lake'`. @docs/transformation.md
 
 ## 5 — Prefect flows
 

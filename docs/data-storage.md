@@ -109,9 +109,10 @@ is where `utils/infisical.py` reads from.
 
 ### Ingredients
 
-Two statements per client. `attach()` in `utils/lakehouse.py` is the reference
-implementation; dlt's `ducklake` destination must produce the same pair, and dbt
-runs `attach()` itself through `utils/dbt_plugin.py`.
+Three secrets and an `ATTACH` per client. `attach()` in `utils/lakehouse.py` is
+the reference implementation; dlt's `ducklake` destination must reach the same
+catalog and data path, and dbt gets the secrets from `credentials()` through
+`utils/dbt_plugin.py`, then runs the `ATTACH` from `profiles.yml`.
 
 ```sql
 CREATE OR REPLACE SECRET storage (
@@ -123,14 +124,30 @@ CREATE OR REPLACE SECRET storage (
     URL_STYLE  'vhost'
 );
 
-ATTACH 'ducklake:postgres:<DUCKLAKE_CATALOG_URI>' AS lake
-       (DATA_PATH '<DUCKLAKE_DATA_PATH>');
+CREATE OR REPLACE SECRET catalog (       -- DUCKLAKE_CATALOG_URI, split up
+    TYPE postgres,
+    HOST '…', PORT '…', DBNAME '…', USER '…', PASSWORD '…',
+    SSLMODE '…', …                       -- every query parameter, as a key
+);
+
+CREATE OR REPLACE SECRET lake (
+    TYPE ducklake,
+    METADATA_PATH '',
+    METADATA_PARAMETERS MAP {'TYPE': 'postgres', 'SECRET': 'catalog'},
+    DATA_PATH '<DUCKLAKE_DATA_PATH>'
+);
+
+ATTACH 'ducklake:lake' AS lake;
 ```
 
-`DUCKLAKE_CATALOG_URI` is passed through verbatim: everything after
-`ducklake:postgres:` goes to the `postgres` extension, which takes either a
-libpq keyword string or a `postgresql://…` URI, so Neon's own string is used
-unedited, query parameters and all.
+`ducklake:lake` names the `lake` secret, so the `ATTACH` itself carries no
+credential and can be written anywhere, `profiles.yml` included.
+
+`DUCKLAKE_CATALOG_URI` stays Neon's own `postgresql://…` string in Infisical.
+`credentials()` splits it into libpq keywords, one per part, and turns every
+query parameter (`sslmode`, `channel_binding`) into a key of its own. The
+postgres secret refuses an unknown keyword, so a typo fails at `CREATE SECRET`.
+A libpq keyword string (`host=… user=…`) is refused, with the reason given.
 
 ### Whys
 
@@ -282,9 +299,11 @@ schema public` while creating `ducklake_metadata` — which reads like a DuckLak
 bug and is a Neon ownership question.
 
 **Connection failures print the password.** DuckDB echoes the full connection
-string, credential in cleartext, in its connect-error message. 
-`utils/lakehouse.py` redacts it before re-raising; anything else that attaches 
-has to do the same.
+string, credential in cleartext, in its connect-error message, whether it comes
+from the `ATTACH` path or a ducklake secret's `METADATA_PATH`. A postgres secret
+is the exception: its `PASSWORD` is never echoed, and `duckdb_secrets()` shows
+it as `redacted`. So `attach()` puts the catalog in one and needs no redaction.
+`_pg()` and dlt still attach with the URI; `_pg()` redacts it before re-raising.
 
 **One Postgres connection per DuckDB thread, never released.** DuckLake caches a
 connection in thread-local storage per worker thread, and they stay counted as

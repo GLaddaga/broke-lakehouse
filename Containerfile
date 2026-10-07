@@ -13,7 +13,12 @@ WORKDIR /workspace
 # requirements.txt is the single source of truth for dependencies, including
 # prefect itself — reinstalled here over the copy baked into the base image.
 # The managed work pool installs from this same file at run time.
-COPY requirements.txt .
+#
+# `-e .` installs `utils` as an editable package pointing at /workspace/utils,
+# so it needs pyproject.toml and utils/ at build time. At run time the repo is
+# mounted over /workspace, and the same path is the live code.
+COPY requirements.txt pyproject.toml ./
+COPY utils/ utils/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Bake the DuckDB extensions in so containers don't fetch them on every start.

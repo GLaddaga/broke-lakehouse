@@ -29,8 +29,8 @@ It does two things:
 never passes through `attach()`. The throwaway connection is how the
 `data_inlining_row_limit = 0` guard still applies to the one client that writes
 bulk data. Cost: one extra Neon round trip per run. It also means a wrong
-password or an unreachable Neon fails here, with `attach()`'s redacted error,
-before dlt has printed anything.
+password or an unreachable Neon fails here, with `attach()`'s error, which
+never contains the password, before dlt has printed anything.
 
 **2. Builds dlt's `ducklake` destination** with explicit credentials:
 
@@ -43,9 +43,10 @@ before dlt has printed anything.
 | `endpoint_url` | `AWS_ENDPOINT_URL_S3`, **with** scheme | dlt wants the URL; only DuckDB wants the bare host |
 | `s3_url_style` | `vhost` | as `attach()`, confirmed on Tigris only |
 
-**Redaction is narrower than dbt's.** `attach()` redacts the catalog URI from
-its own errors. A failure *inside* dlt, after step 1 passed, goes through dlt's
-error handling, not ours.
+**dlt is the one client that can print the password.** `attach()` and dbt keep
+the catalog in a postgres secret, whose password DuckDB never echoes. dlt takes
+the URI verbatim, so a connect failure *inside* dlt, after step 1 passed, can
+put it in dlt's error output.
 
 ## What lands in `raw`
 
