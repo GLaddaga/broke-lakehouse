@@ -1,8 +1,20 @@
 # Secrets
 
-Every secret lives in Infisical and is fetched at run time by `utils/infisical.py`.
+Every secret lives in Infisical and is fetched at run time by `utils/secrets/infisical.py`.
 The single exception is the bootstrap credential below — the machine identity
 that lets a process fetch everything else.
+
+## Swapping the secret manager
+
+Callers import `get_secrets` from `utils.secrets`, never from a provider
+module. Each provider is one module under `utils/secrets/` exposing the same
+function, `get_secrets(names, *, environment) -> dict[str, str]`, and
+`utils/secrets/__init__.py` re-exports the one in use. Another provider is a new
+module and a one-line change to that import.
+
+The bootstrap credential is provider-specific, so a swap also changes
+`.env.example`, the Prefect Secret block, and the bootstrap rows of the contract
+below. The other names in the contract stay as they are.
 
 The Infisical CLI is not used: Prefect's managed work pool installs pip packages only and cannot take a Go binary,
 so secrets are fetched with `infisicalsdk` and one code path serves both local and serverless.

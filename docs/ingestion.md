@@ -2,7 +2,7 @@
 
 Data lands in the lakehouse through dlt, whose pipelines live in `ingest/`.
 This document describes the architectural choices made for dlt and how to run
-it. How dlt itself works is @docs/guides/dlt.md.
+it. How dlt itself works, on the TPC-H sample, is @docs/guides/dlt.md.
 
 ## Run
 
@@ -55,7 +55,7 @@ Every pipeline writes the `raw` dataset (`dataset_name="raw"`) and nothing else
 
 | Table | Written by | Holds |
 |---|---|---|
-| `<table>__<source>` × 8 | the source's resources | the data, as generated |
+| `<table>__<source>` | the source's resources, one table each | the data, as it arrived |
 | `_dlt_loads` | dlt | one row per load package, with its status |
 | `_dlt_version` | dlt | every version of the inferred schema |
 | `_dlt_pipeline_state` | dlt | the pipeline state, incremental cursors included |
@@ -64,7 +64,7 @@ The table names come from each resource's `name=`, which is where
 `<table>__<source>` is enforced; dlt would otherwise name the table after the
 function.
 
-In the bucket: `s3://<bucket>/<environment>/raw/<table>__tpch/ducklake-<uuid>.parquet`.
+In the bucket: `s3://<bucket>/<environment>/raw/<table>__<source>/ducklake-<uuid>.parquet`.
 
 ## State lives in the destination
 

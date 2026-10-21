@@ -1,6 +1,8 @@
 # The Broke Lakehouse
 
-Cheap, reproducible lakehouse stack: dlt → dbt / DuckDB + DuckLake → S3-compatible object storage, orchestrated by Prefect.
+## Manifesto
+Cheap, reproducible lakehouse stack: dlt → dbt / DuckDB + DuckLake → S3-compatible object storage, orchestrated with an
+open-source tool (e.g. Prefect, Airflow). Full story @docs/manifesto.md.
 
 ## Current state
 @docs/roadmap.md for the build status, order and known risks.
@@ -25,6 +27,7 @@ the-broke-lakehouse/
 ├── Containerfile               # local dev environment; installs from requirements.txt
 ├── .env.example                # Infisical bootstrap credential: names, no values
 ├── utils/                    # shared support code for all three components
+│   └── secrets/                # one module per secret manager, same get_secrets()
 │
 ├── ingest/                     # dlt project — extracts raw data into the warehouse
 │   ├── sources/                # source definitions (API, DB connectors, etc.)

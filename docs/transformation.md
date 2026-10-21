@@ -142,7 +142,7 @@ it gets. It fails with *Secret "lake" was not found* if the plugin did not run.
 | `path` | The lakehouse is attached, not opened. `:memory:` gives an empty scratch database and no local file to manage |
 | `extensions` | `credentials()` loads `ducklake`, `httpfs` and `postgres` itself. The image already has them installed |
 | `secrets` | `credentials()` creates them, with values from Infisical |
-| any `env_var()` | No value comes from the environment. The only env vars involved are Infisical's bootstrap three, read by `utils/infisical.py`, not by dbt |
+| any `env_var()` | No value comes from the environment. The only env vars involved are Infisical's bootstrap three, read by `utils/secrets/infisical.py`, not by dbt |
 | `module_paths` | `utils` is installed (`-e .`), so no `sys.path` entry is needed and nothing depends on the working directory |
 | `settings` | No DuckDB setting needs changing yet. If the Neon connection limit ever bites, `threads` for DuckDB goes here |
 | `is_ducklake` | Only needed when the path has no `ducklake:` scheme, which is MotherDuck's case. |

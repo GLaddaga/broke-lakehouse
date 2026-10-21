@@ -94,7 +94,7 @@ one and never mix them between variables.
 ## The values this produces
 
 All six go into Infisical, in the `prod` environment, at the root path — which
-is where `utils/infisical.py` reads from.
+is where `utils/secrets/infisical.py` reads from.
 
 | Variable | Value |
 |---|---|

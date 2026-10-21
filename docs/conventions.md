@@ -54,6 +54,14 @@ and dicts stay whole as JSON columns. Flattening is `bronze`'s job.
 and the bucket prefix, never in a name, so a clone of production behaves exactly
 like production. @docs/data-storage.md
 
+**The attach alias is set once per project, never per environment or run.** A
+DuckLake view stores its SQL with the alias written into it, so every client —
+`attach()`, dlt, dbt, a researcher's session — has to use the same one, and
+renaming it after the first view breaks that view. It is a plain SQL identifier
+(lowercase letters, digits, underscores), so it never needs quoting. The default
+is `lake`, set in two places: the `LAKE` constant in `utils/lakehouse.py` for
+`attach()` and dlt, and `profiles.yml` for dbt.
+
 **Pin the type when a source is inconsistent.** This avoids column splitting.
 
 ## Materializations
@@ -73,8 +81,9 @@ Deliberately skipped to save compute. Can be reconsidered at a later stage.
 
 ## Secrets
 
-A thin Python wrapper retrieves secrets from Infisical using the SDK.
-@docs/secrets.md
+One thin Python module per secret manager under `utils/secrets/`, each exposing
+`get_secrets(names, *, environment)`. `utils.secrets` re-exports the one in use,
+and every caller imports from there. @docs/secrets.md
 
 ## Data flow
 
