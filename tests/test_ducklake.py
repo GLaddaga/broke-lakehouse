@@ -23,8 +23,9 @@ import sys
 import duckdb
 import pytest
 
-from utils.infisical import get_secrets
+from utils.secrets import get_secrets
 from utils.lakehouse import (
+    LAKE,
     _assert_no_inlining,
     _sql,
     NAMES,
@@ -69,24 +70,24 @@ def test_empty_keeps_the_catalog(tmp_path):
     DATA_PATH — so it needs no credentials and cannot reach a real lakehouse."""
     con = duckdb.connect()
     con.load_extension("ducklake")
-    con.sql(f"ATTACH 'ducklake:{tmp_path}/catalog.ducklake' AS lake "
+    con.sql(f"ATTACH 'ducklake:{tmp_path}/catalog.ducklake' AS {LAKE} "
             f"(DATA_PATH '{tmp_path}/data/')")
-    con.sql("CALL lake.set_option('data_inlining_row_limit', 0)")
-    con.sql("CREATE SCHEMA lake.raw")
-    con.sql("CREATE TABLE lake.raw.events AS SELECT range AS id FROM range(3)")
-    con.sql("CREATE VIEW lake.main.recent AS SELECT * FROM lake.raw.events")
+    con.sql(f"CALL {LAKE}.set_option('data_inlining_row_limit', 0)")
+    con.sql(f"CREATE SCHEMA {LAKE}.raw")
+    con.sql(f"CREATE TABLE {LAKE}.raw.events AS SELECT range AS id FROM range(3)")
+    con.sql(f"CREATE VIEW {LAKE}.main.recent AS SELECT * FROM {LAKE}.raw.events")
     assert list((tmp_path / "data").rglob("*.parquet")), "setup wrote no Parquet"
 
     _empty(con)
 
     assert _contents(con) == []
     assert "raw" not in [r[0] for r in con.sql(
-        "SELECT schema_name FROM duckdb_schemas() WHERE database_name = 'lake'").fetchall()]
+        f"SELECT schema_name FROM duckdb_schemas() WHERE database_name = '{LAKE}'").fetchall()]
     assert not list((tmp_path / "data").rglob("*.parquet")), "files left behind"
-    assert con.sql("SELECT value FROM __ducklake_metadata_lake.ducklake_metadata "
+    assert con.sql(f"SELECT value FROM __ducklake_metadata_{LAKE}.ducklake_metadata "
                    "WHERE key = 'data_inlining_row_limit'").fetchall() == [("0",)], \
         "the catalog's options did not survive"
-    con.sql("CREATE TABLE lake.after AS SELECT 1 AS ok")  # still a working lake
+    con.sql(f"CREATE TABLE {LAKE}.after AS SELECT 1 AS ok")  # still a working lake
 
 
 @needs_credentials
@@ -118,10 +119,10 @@ def test_roundtrip(environment):
 
         # One row sits under DuckLake's default inlining threshold, so this fails
         # loudly if the persisted limit is ever lost or stops being honoured.
-        con.sql(f"CREATE OR REPLACE TABLE lake.{TABLE} AS SELECT 42 AS answer")
+        con.sql(f"CREATE OR REPLACE TABLE {LAKE}.{TABLE} AS SELECT 42 AS answer")
 
         files = [r[0] for r in con.sql(
-            f"SELECT data_file FROM ducklake_list_files('lake', '{TABLE}')").fetchall()]
+            f"SELECT data_file FROM ducklake_list_files('{LAKE}', '{TABLE}')").fetchall()]
         assert files, "no Parquet file written — the row was inlined into Neon"
         assert files[0].startswith(f"s3://{bucket}/{prefix}"), \
             f"data file is not under the configured data path: {files[0]}"
@@ -139,7 +140,7 @@ def test_roundtrip(environment):
             [sys.executable, "-c",
              "from utils.lakehouse import attach;"
              f"print(attach('{environment}').sql("
-             f"'SELECT answer FROM lake.{TABLE}').fetchall()[0][0])"],
+             f"'SELECT answer FROM {LAKE}.{TABLE}').fetchall()[0][0])"],
             capture_output=True, text=True)
         assert fresh.returncode == 0, fresh.stderr
         assert fresh.stdout.strip() == "42", f"fresh process read {fresh.stdout.strip()!r}"
@@ -164,12 +165,12 @@ def test_guard_refuses_a_catalog_without_the_inlining_option(tmp_path):
     """
     con = duckdb.connect()
     con.load_extension("ducklake")
-    con.sql(f"ATTACH 'ducklake:{tmp_path}/cat.duckdb' AS lake "
+    con.sql(f"ATTACH 'ducklake:{tmp_path}/cat.duckdb' AS {LAKE} "
             f"(DATA_PATH '{tmp_path}/data/')")
 
     with pytest.raises(RuntimeError, match="data_inlining_row_limit"):
         _assert_no_inlining(con)  # a bare attach persists no option at all
 
-    con.sql("CALL lake.set_option('data_inlining_row_limit', 0)")
+    con.sql(f"CALL {LAKE}.set_option('data_inlining_row_limit', 0)")
     _assert_no_inlining(con)  # and passes once initialise() would have set it
     con.close()

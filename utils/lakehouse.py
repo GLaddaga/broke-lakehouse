@@ -18,7 +18,12 @@ from urllib.parse import parse_qsl, unquote, urlparse
 import boto3
 import duckdb
 
-from utils.infisical import get_secrets
+from utils.secrets import get_secrets
+
+# The attach alias, set once per project: a DuckLake view stores it in its SQL,
+# so renaming it after the first view breaks that view. dbt's copy is the
+# `database:` and `attach:` entry in transform/profiles.yml. @docs/conventions.md
+LAKE = "lake"
 
 NAMES = [
     "DUCKLAKE_CATALOG_URI",
@@ -91,7 +96,7 @@ def _assert_no_inlining(con: duckdb.DuckDBPyConnection) -> None:
     """
     Refuse a lakehouse that would write rows into Neon instead of Parquet.
     """
-    if con.sql("SELECT value FROM lake.options() WHERE scope = 'GLOBAL' "
+    if con.sql(f"SELECT value FROM {LAKE}.options() WHERE scope = 'GLOBAL' "
                "AND option_name = 'data_inlining_row_limit'").fetchall() != [("0",)]:
         raise RuntimeError(
             "data_inlining_row_limit is not 0")
@@ -135,10 +140,10 @@ def credentials(environment: str, con: duckdb.DuckDBPyConnection) -> None:
             TYPE postgres,
             {", ".join(f"{key} {_sql(value)}" for key, value in catalog.items() if value)}
         )""")
-    # Named `lake`, like the database, and attached as `ducklake:lake`.
+    # Named after LAKE, like the database, and attached as `ducklake:<LAKE>`.
     bucket, prefix = _path(secrets)  # normalised, so the recorded path ends in /
     con.sql(f"""
-        CREATE OR REPLACE SECRET lake (
+        CREATE OR REPLACE SECRET {LAKE} (
             TYPE ducklake,
             METADATA_PATH '',
             METADATA_PARAMETERS MAP {{'TYPE': 'postgres', 'SECRET': 'catalog'}},
@@ -150,7 +155,7 @@ def attach(environment: str, *, verify: bool = True) -> duckdb.DuckDBPyConnectio
     """The secrets and the ATTACH from docs/data-storage.md, nothing else."""
     con = duckdb.connect()
     credentials(environment, con)
-    con.sql("ATTACH 'ducklake:lake' AS lake")
+    con.sql(f"ATTACH 'ducklake:{LAKE}' AS {LAKE}")
     if verify:
         _assert_no_inlining(con)
     return con
@@ -175,7 +180,7 @@ def destination(environment: str):
     bucket, prefix = _path(secrets)
     return ducklake(
         credentials=DuckLakeCredentials(
-            ducklake_name="lake",
+            ducklake_name=LAKE,
             metadata_schema="public",
             catalog=secrets["DUCKLAKE_CATALOG_URI"],
             storage=FilesystemConfiguration(
@@ -233,7 +238,7 @@ def initialise(environment: str, *, force: bool = False) -> None:
 
 
     con = attach(environment, verify=False)
-    con.sql("CALL lake.set_option('data_inlining_row_limit', 0)")
+    con.sql(f"CALL {LAKE}.set_option('data_inlining_row_limit', 0)")
     con.close()
 
 
@@ -297,13 +302,13 @@ def _contents(con: duckdb.DuckDBPyConnection) -> list[tuple[str, str, str]]:
     (kind, schema, name) of everything the attached lake holds, views first
     so that dropping in this order never pulls a table out from under a view.
     """
-    return con.sql("""
+    return con.sql(f"""
         SELECT * FROM (
             SELECT 'VIEW' AS kind, schema_name AS s, view_name AS n FROM duckdb_views()
-             WHERE database_name = 'lake' AND NOT internal 
+             WHERE database_name = '{LAKE}' AND NOT internal
             UNION ALL
             SELECT 'TABLE', schema_name, table_name FROM duckdb_tables()
-             WHERE database_name = 'lake')
+             WHERE database_name = '{LAKE}')
         ORDER BY kind = 'TABLE', s, n""").fetchall()
 
 
@@ -313,14 +318,14 @@ def _empty(con: duckdb.DuckDBPyConnection) -> None:
     catalog and its options exactly as initialise() made them.
     """
     for kind, schema, name in _contents(con):
-        con.sql(f'DROP {kind} lake."{schema}"."{name}"')
+        con.sql(f'DROP {kind} {LAKE}."{schema}"."{name}"')
     for (schema,) in con.sql(
-            "SELECT schema_name FROM duckdb_schemas() WHERE database_name = 'lake' "
+            f"SELECT schema_name FROM duckdb_schemas() WHERE database_name = '{LAKE}' "
             "AND NOT internal AND schema_name <> 'main'").fetchall():
-        con.sql(f'DROP SCHEMA lake."{schema}"')  # dlt's `raw` and the like
-    con.sql("CALL ducklake_expire_snapshots('lake', older_than => now())")
-    con.sql("CALL ducklake_cleanup_old_files('lake', cleanup_all => true)")
-    con.sql("CALL ducklake_delete_orphaned_files('lake', cleanup_all => true)")
+        con.sql(f'DROP SCHEMA {LAKE}."{schema}"')  # dlt's `raw` and the like
+    con.sql(f"CALL ducklake_expire_snapshots('{LAKE}', older_than => now())")
+    con.sql(f"CALL ducklake_cleanup_old_files('{LAKE}', cleanup_all => true)")
+    con.sql(f"CALL ducklake_delete_orphaned_files('{LAKE}', cleanup_all => true)")
 
 
 def reset(environment: str) -> list[str]:

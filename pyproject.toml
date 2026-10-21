@@ -10,4 +10,4 @@ name = "the-broke-lakehouse"
 version = "0"
 
 [tool.setuptools]
-packages = ["utils"]
+packages = ["utils", "utils.secrets"]

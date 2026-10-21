@@ -5,7 +5,7 @@ lakehouse:
   outputs:
     prod:
       type: duckdb
-      database: lake
+      database: lake # LAKE in utils/lakehouse.py; this and the attach below change with it
       schema: main # for models with no layer
       threads: 1
       plugins:
