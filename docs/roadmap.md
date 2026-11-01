@@ -11,7 +11,7 @@ analyst reads it from their own machine.
 | 0 | Skeleton | `podman build` works; `dlt --version` and `dbt --version` run in the container | ✅ |
 | 1 | Secrets | `tests/test_infisical.py` passes against `prod` (@docs/secrets.md) | ✅ |
 | 2 | Catalog + storage | a table written in one process is read from a fresh one (`tests/test_ducklake.py`, @docs/data-storage.md) | ✅ |
-| 3 | First dlt pipeline | TPC-H in `raw` with `replace`; a second run leaves no duplicates (@docs/ingestion.md) | in review |
+| 3 | First dlt pipeline | TPC-H in `raw` with `replace`; a second run leaves no duplicates (@docs/ingestion.md) | ✅ |
 | 4 | dbt attached | `dbt run --target prod` builds models, readable from a plain `attach('prod')` (@docs/transformation.md) | ✅ |
 | 5 | Prefect flow | one `pipeline_flow` (dlt, then dbt) completes locally | |
 | 6 | Serverless | a scheduled run completes on Prefect's managed pool, with nothing running locally. Produces `docs/operations.md` | |
@@ -32,3 +32,10 @@ the scaffolding tool.
   a real region and no endpoint override. Neither has been run.
 - **Prefect's managed pool installs from `requirements.txt` and takes no custom
   image.** Anything pinned only in the Containerfile drifts from the cloud.
+
+## Known bugs
+
+- **`attach()` creates a catalog on an empty lakehouse, without the inlining
+  option.** Running a pipeline before `initialise` fails the guard but leaves the
+  catalog behind, and `initialise` then refuses without `--force`. Fix: check for
+  `ducklake_*` tables before attaching.
