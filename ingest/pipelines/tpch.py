@@ -42,7 +42,7 @@ def tpch(database: Path):
 
     Arrow rather than dicts because the point here is to measure the write path:
     row-by-row normalisation would dominate the timings and measure dlt instead
-    of the lakehouse. Further information @docs/guides/dlt.md
+    of the lakehouse. @docs/ingestion.md
     """
     def batches(table: str):
         # Its own read-only connection: extraction pulls on these generators

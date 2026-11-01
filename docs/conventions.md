@@ -1,92 +1,61 @@
 # Conventions
 
-How data is laid out and named, and the rules every component follows.
-
 ## Environment
 
-- One `requirements.txt` at the repo root for `orchestrate/`, `ingest/` and `transform/`.
-- Local development runs only in a Podman container that mounts the repo.
-- The Containerfile installs from `requirements.txt` and pins nothing of its own. Prefect's managed work pool installs from that same file at run time and cannot take a custom image, so `requirements.txt` is the only place dependencies are declared — anything pinned solely in the Containerfile drifts from what actually runs in the cloud.
+- `requirements.txt` is the only place dependencies are declared, for all three
+  components. The Containerfile installs from it, and so does Prefect's
+  managed pool.
+- Local development happens only inside the Podman container.
 
 ## Layers
 
-One schema per layer, one word each: `archive`, `raw`, `bronze`, `silver`, `gold`.
+One schema per layer: `archive`, `raw`, `bronze`, `silver`, `gold`. A schema
+exists only once something writes to it.
 
-| Schema | Written by | What it holds |
+| Schema | Written by | Holds |
 |---|---|---|
-| `archive` | nothing yet | verbatim source payloads, for sources that cannot be re-read |
-| `raw` | dlt | the payload as it arrived, one table per source table |
-| `raw_staging` | dlt, automatically, for `merge` only | dlt's merge staging — not a designed layer |
+| `archive` | nothing yet | verbatim payloads from sources that can't be re-read; gets its own bucket |
+| `raw` | dlt | data as it arrived, one table per source table |
+| `raw_staging` | dlt, for `merge` only | dlt-managed, not a designed layer |
 | `bronze` / `silver` / `gold` | dbt | flattening, typing, modelling |
 
-**`raw` is append-only by default.** `append` is the cheapest disposition there
-is: the load adds Parquet files and nothing else. It never reads the target,
-never rewrites a file, and does not need staging dataset. It also suits a persistent 
-landing layer on its own terms: history accumulates instead of being overwritten, 
-and a file once written is never touched again.
+**Write dispositions in `raw`:**
 
-**Idempotency with `append` comes from the extraction, not from the write.** A
-resource with an incremental cursor fetches only what is new, so a second run
-has nothing to append.
-
-**`merge` is the exception, for sources that can only be asked "what is true
-now".** DuckLake expresses the upsert as delete plus insert, so data files 
-get rewritten and delete files accumulate, and dlt stages the whole incoming 
-load in `raw_staging` first.
-
-**`replace` is for generated fixtures only**, data that is
-regenerated whole each run and has no cursor. Each run rewrites the table.
-
-**`raw_staging` is not ours, it is dlt-managed.**
-
-**`archive` gets its own bucket**, not a prefix inside the lakehouse bucket.
-
-**Schemas exist only once something writes to them.**
+- **`append`** is the default. It's the cheapest: it adds files and never reads
+  or rewrites anything, and history accumulates. Idempotency comes from an
+  incremental cursor in the extraction, not from the write.
+- **`merge`** is for sources that can only answer "what is true now". DuckLake
+  does it as delete + insert, which rewrites files and stages the whole load in
+  `raw_staging`.
+- **`replace`** is for sources that are regenerated
+  whole on every run.
 
 ## Naming
 
-**Tables are `<table>__<source>`.**
-
-**No child tables in `raw`.** dlt resources set `max_table_nesting=0`, so lists
-and dicts stay whole as JSON columns. Flattening is `bronze`'s job.
-
-**Names are identical in every environment.** Isolation lives in the Neon branch
-and the bucket prefix, never in a name, so a clone of production behaves exactly
-like production. @docs/data-storage.md
-
-**The attach alias is set once per project, never per environment or run.** A
-DuckLake view stores its SQL with the alias written into it, so every client —
-`attach()`, dlt, dbt, a researcher's session — has to use the same one, and
-renaming it after the first view breaks that view. It is a plain SQL identifier
-(lowercase letters, digits, underscores), so it never needs quoting. The default
-is `lake`, set in two places: the `LAKE` constant in `utils/lakehouse.py` for
-`attach()` and dlt, and `profiles.yml` for dbt.
-
-**Pin the type when a source is inconsistent.** This avoids column splitting.
+- Tables are `<table>__<source>`.
+- No child tables in `raw`: `max_table_nesting=0` keeps nested data as JSON.
+  Flattening happens in `bronze`.
+- Pin column types when a source is inconsistent, so dlt doesn't split the column.
+- Names are identical in every environment. Isolation comes from the Neon
+  branch and the bucket prefix, so a clone of prod behaves like prod
+  (@docs/data-storage.md).
+- **The attach alias is `lake`, fixed per project.** DuckLake views store the
+  alias in their SQL, so every client must use the same one, and renaming it
+  breaks existing views. It's set in `LAKE` in `utils/lakehouse.py` (for
+  `attach()` and dlt) and in `profiles.yml` (for dbt).
 
 ## Materializations
 
-**`bronze` is `table`.** Built once per run, read as Parquet by everything
-downstream, rather than a view that re-reads `raw` on every query. The cost is a
-full rewrite per run and old files left for the cleanup job.
-
-**`silver` and `gold` are `table` too**, for the same reason: `gold` is what gets
-queried most, and a view there would re-run the joins over `silver` on every
-read. The first model to outgrow a full rebuild becomes `incremental`.
-@docs/transformation.md
+Every layer is `table`, so everything downstream reads Parquet instead of
+re-running views. The cost is a full rewrite per run, with old files left for
+maintenance. A model that outgrows full rebuilds becomes `incremental`.
 
 ## No data quality tests
 
-Deliberately skipped to save compute. Can be reconsidered at a later stage.
-
-## Secrets
-
-One thin Python module per secret manager under `utils/secrets/`, each exposing
-`get_secrets(names, *, environment)`. `utils.secrets` re-exports the one in use,
-and every caller imports from there. @docs/secrets.md
+Skipped to save compute, for now.
 
 ## Data flow
 
-- `orchestrate/` calls into `ingest/` and `transform/` directly — same environment, so imports or CLI calls both work.
-- Data passes between stages via the warehouse only.
-- dlt writes only `raw`. dbt reads `raw` and writes `bronze`, `silver` and `gold`, all within the same DuckLake catalog.
+- `orchestrate/` calls `ingest/` and `transform/` directly (same environment).
+- Stages pass data only through the warehouse.
+- dlt writes only `raw`. dbt reads `raw` and writes `bronze`, `silver` and `gold`.
