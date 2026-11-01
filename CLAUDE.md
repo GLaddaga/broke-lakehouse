@@ -23,8 +23,9 @@ Target layout. A data platform monorepo with three components sharing one set of
 
 ```
 the-broke-lakehouse/
-├── requirements.txt            # shared dependencies for ingest, transform, and orchestrate
-├── Containerfile               # local dev environment; installs from requirements.txt
+├── requirements.txt            # shared runtime dependencies for ingest, transform, and orchestrate
+├── requirements-dev.txt        # development-only dependencies
+├── Containerfile               # `base` stage from requirements.txt; `dev` stage adds requirements-dev.txt
 ├── .env.example                # Infisical bootstrap credential: names, no values
 ├── utils/                    # shared support code for all three components
 │   └── secrets/                # one module per secret manager, same get_secrets()

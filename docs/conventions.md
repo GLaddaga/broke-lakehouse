@@ -2,10 +2,13 @@
 
 ## Environment
 
-- `requirements.txt` is the only place dependencies are declared, for all three
-  components. The Containerfile installs from it, and so does Prefect's
-  managed pool.
-- Local development happens only inside the Podman container.
+- `requirements.txt` is the only place runtime dependencies are declared, for
+  all three components. The Containerfile's `base` stage installs from it, and
+  so does Prefect's managed pool.
+- `requirements-dev.txt` holds what only development needs. The `dev` stage adds
+  it on top of `base`, and it never reaches the managed pool.
+- Local development happens only inside the Podman container, built from `dev`,
+  the default stage.
 
 ## Layers
 

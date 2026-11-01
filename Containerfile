@@ -1,4 +1,10 @@
-# Local development environment. There is no venv — all work happens in here.
+# Two stages:
+#   base  what production needs: requirements.txt on Prefect's image.
+#   dev   base plus requirements-dev.txt. All local work happens in here, there
+#         is no venv. It's the last stage, so it's what a plain build produces:
+#
+#   podman build -t the-broke-lakehouse .
+#   podman build --target base -t the-broke-lakehouse:base .
 #
 # Base is the same image Prefect's managed work pool runs, pinned rather than
 # tracking :3-latest so it can't move underneath us. Bump this together with
@@ -6,13 +12,13 @@
 #
 # Registry is spelled out: podman has no unqualified-search default, and an
 # explicit registry is one less thing that resolves differently on another box.
-FROM docker.io/prefecthq/prefect:3.8.3-python3.12
+FROM docker.io/prefecthq/prefect:3.8.3-python3.12 AS base
 
 WORKDIR /workspace
 
-# requirements.txt is the single source of truth for dependencies, including
-# prefect itself — reinstalled here over the copy baked into the base image.
-# The managed work pool installs from this same file at run time.
+# requirements.txt is the single source of truth for runtime dependencies,
+# including prefect itself — reinstalled here over the copy baked into the base
+# image. The managed work pool installs from this same file at run time.
 #
 # `-e .` installs `utils` as an editable package pointing at /workspace/utils,
 # so it needs pyproject.toml and utils/ at build time. At run time the repo is
@@ -27,3 +33,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN python -c "import duckdb; duckdb.sql('INSTALL ducklake; INSTALL httpfs; INSTALL postgres; INSTALL tpch;')"
 
 CMD ["bash"]
+
+FROM base AS dev
+
+COPY requirements-dev.txt ./
+RUN pip install --no-cache-dir -r requirements-dev.txt
