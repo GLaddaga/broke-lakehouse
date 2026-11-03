@@ -7,14 +7,29 @@ dbt never builds on a load that did not finish. @docs/orchestration.md
 """
 
 import argparse
+import os
 from pathlib import Path
 
 from dbt.cli.main import dbtRunner
 from prefect import flow, task
+from prefect.blocks.system import Secret
 
 from ingest.pipelines.tpch import load
 
 TRANSFORM = str(Path(__file__).parents[2] / "transform")
+BOOTSTRAP = ("INFISICAL_CLIENT_ID", "INFISICAL_CLIENT_SECRET", "INFISICAL_PROJECT_ID")
+
+
+def _bootstrap() -> None:
+    """
+    The Infisical credential from Prefect Secret blocks (`infisical-client-id`
+    and so on), for the managed pool. Locally the `.env` already set them, so no
+    block is read. Loaded here rather than through `job_variables.env`, because
+    `prefect deploy` would resolve the block references into the deployment.
+    """
+    for name in BOOTSTRAP:
+        if name not in os.environ:
+            os.environ[name] = Secret.load(name.lower().replace("_", "-")).get()
 
 
 @task
@@ -33,6 +48,7 @@ def transform(environment: str) -> None:
 
 @flow(log_prints=True)
 def pipeline_flow(environment: str, sf: float = 1.0) -> None:
+    _bootstrap()
     ingest(environment, sf)
     transform(environment)
 

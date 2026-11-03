@@ -1,0 +1,29 @@
+# One deployment on Prefect's managed pool. Deploy from the repo root:
+#
+#   prefect --no-prompt deploy --prefect-file orchestrate/prefect.yaml --all
+#
+# The pool clones `main` from GitHub, so only pushed commits run. The Infisical
+# credential comes from Secret blocks, which the flow loads itself. @docs/orchestration.md
+name: the-broke-lakehouse
+prefect-version: 3.8.3
+
+pull:
+  - prefect.deployments.steps.git_clone:
+      id: clone
+      repository: https://github.com/GLaddaga/the-broke-lakehouse.git
+      branch: main
+  - prefect.deployments.steps.pip_install_requirements:
+      directory: "{{ clone.directory }}"
+      requirements_file: requirements.txt
+
+deployments:
+  - name: prod
+    entrypoint: orchestrate/flows/pipeline.py:pipeline_flow
+    parameters:
+      environment: prod
+      sf: 0.01 # ~10 MB, a test run
+    # No `image`: the pool doesn't offer ours. Match the Containerfile FROM and
+    # the prefect pin to the pool's own image once the first run logs it.
+    work_pool:
+      name: managed
+    # No schedule yet: runs are started by hand from the UI.
