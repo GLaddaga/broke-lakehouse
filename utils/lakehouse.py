@@ -13,6 +13,7 @@ lakehouse a command touches — and that belongs in the command, visibly.
 
 import argparse
 import sys
+from contextlib import contextmanager
 from urllib.parse import parse_qsl, unquote, urlparse
 
 import boto3
@@ -47,8 +48,28 @@ def _redact(error: Exception, uri: str) -> RuntimeError:
     """
     DuckDB echoes the whole connection string, password included, when a
     connect fails. Keep it out of tracebacks and CI logs.
+
+    The password goes separately because dlt respells the URI before DuckDB sees
+    it (`postgresql://` to `postgres://`), so the whole string no longer matches.
     """
-    return RuntimeError(str(error).replace(uri, "<catalog uri>"))
+    text = str(error).replace(uri, "<catalog uri>")
+    if password := urlparse(uri).password:
+        for spelling in (password, unquote(password)):
+            text = text.replace(spelling, "<password>")
+    return RuntimeError(text)
+
+
+@contextmanager
+def redacted(environment: str):
+    """
+    For code that hands the catalog URI to something else, like dlt, whose
+    failures can print it. `from None` keeps the original out of the traceback.
+    """
+    try:
+        yield
+    except Exception as e:
+        uri = get_secrets(NAMES, environment=environment)["DUCKLAKE_CATALOG_URI"]
+        raise _redact(e, uri) from None
 
 
 def _path(secrets: dict[str, str]) -> tuple[str, str]:
@@ -84,6 +105,7 @@ def _pg(secrets: dict[str, str]) -> duckdb.DuckDBPyConnection:
     are visible as the ordinary tables they are.
     """
     con = duckdb.connect()
+    con.install_extension("postgres")
     con.load_extension("postgres")
     try:
         con.sql(f"ATTACH {_sql(secrets['DUCKLAKE_CATALOG_URI'])} AS pg (TYPE postgres)")
@@ -111,6 +133,9 @@ def credentials(environment: str, con: duckdb.DuckDBPyConnection) -> None:
     """
     secrets = get_secrets(NAMES, environment=environment)
     for extension in ("ducklake", "httpfs", "postgres"):
+        # Prefect's managed pool doesn't run our image, so nothing is baked in
+        # there. A no-op where the extension is already installed.
+        con.install_extension(extension)
         con.load_extension(extension)
     # PROVIDER config with the key pair passed directly: the non-AWS S3 stores
     # issue long-lived key pairs only — no STS, no session tokens — so a

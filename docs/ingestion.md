@@ -16,8 +16,10 @@ uses, with `ducklake_name="lake"` (the shared alias). It first runs one
 `attach()` to check the inlining guard, which also makes bad credentials fail
 early, without printing the password.
 
-**dlt can still print the password.** It takes the catalog URI verbatim, so a
-connect failure inside dlt can show it in the error output.
+**dlt can print the password.** It takes the catalog URI verbatim, so a connect
+failure inside dlt shows it in the error. Prefect logs a failed task's traceback,
+so every `pipeline.run` goes inside `with redacted(environment):`, which strips it
+(`tests/test_redaction.py`).
 
 ## What lands in `raw`
 

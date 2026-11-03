@@ -16,7 +16,7 @@ from pathlib import Path
 import dlt
 import duckdb
 
-from utils.lakehouse import destination
+from utils.lakehouse import destination, redacted
 
 TABLES = ("customer", "lineitem", "nation", "orders",
           "part", "partsupp", "region", "supplier")
@@ -73,7 +73,9 @@ def load(environment: str, sf: float) -> None:
         # good part of a freshly generated database.
         size = sum(f.stat().st_size for f in Path(tmp).iterdir()) / 1e6
         print(f"generated sf={sf}: {size:.0f} MB to read from", file=sys.stderr)
-        print(pipeline.run(tpch(database)))
+        with redacted(environment):
+            info = pipeline.run(tpch(database))
+        print(info)
 
 
 if __name__ == "__main__":
