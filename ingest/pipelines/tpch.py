@@ -58,24 +58,28 @@ def tpch(database: Path):
     ]
 
 
+def load(environment: str, sf: float) -> None:
+    """Generate TPC-H at this scale factor and load it into `raw`."""
+    pipeline = dlt.pipeline(
+        pipeline_name="tpch",
+        destination=destination(environment),
+        dataset_name="raw",
+    )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        database = Path(tmp) / "tpch.duckdb"
+        generate(database, sf)
+        # Every file in the directory, not just the .duckdb: the WAL holds a
+        # good part of a freshly generated database.
+        size = sum(f.stat().st_size for f in Path(tmp).iterdir()) / 1e6
+        print(f"generated sf={sf}: {size:.0f} MB to read from", file=sys.stderr)
+        print(pipeline.run(tpch(database)))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="python -m ingest.pipelines.tpch")
     parser.add_argument("environment", help="the lakehouse to load, never defaulted")
     parser.add_argument("--sf", type=float, default=1.0,
                         help="TPC-H scale factor; ~1 GB per unit (default: 1)")
     args = parser.parse_args()
-
-    pipeline = dlt.pipeline(
-        pipeline_name="tpch",
-        destination=destination(args.environment),
-        dataset_name="raw",
-    )
-
-    with tempfile.TemporaryDirectory() as tmp:
-        database = Path(tmp) / "tpch.duckdb"
-        generate(database, args.sf)
-        # Every file in the directory, not just the .duckdb: the WAL holds a
-        # good part of a freshly generated database.
-        size = sum(f.stat().st_size for f in Path(tmp).iterdir()) / 1e6
-        print(f"generated sf={args.sf}: {size:.0f} MB to read from", file=sys.stderr)
-        print(pipeline.run(tpch(database)))
+    load(args.environment, args.sf)
