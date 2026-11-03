@@ -1,0 +1,9 @@
+# Claude
+settings.local.json
+
+# Secrets
+.env
+.env.*
+
+# Python
+__pycache__/
