@@ -15,3 +15,6 @@ A failed stage fails the flow, and dbt does not start after a failed load.
 
 `log_prints=True` sends `print` output to the flow's logs. No timeout is set, so
 a Neon cold start can't fail a run.
+
+In Prefect Cloud the same flow is the `pipeline-flow/prod` deployment on the
+managed pool. Setup, deploying and running it are in @docs/operations.md.

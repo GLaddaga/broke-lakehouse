@@ -18,7 +18,8 @@ A Universal Auth machine identity plus the project ID:
 
 - **Locally:** `cp .env.example .env` and fill it in. Use plain `KEY=VALUE` lines,
   because `--env-file` keeps quotes as part of the value and does no `$VAR` expansion.
-- **Prefect:** a Secret block.
+- **Prefect:** three Secret blocks, which `pipeline_flow` loads itself
+  (@docs/operations.md).
 
 ## Contract
 

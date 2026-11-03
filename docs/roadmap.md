@@ -14,7 +14,7 @@ analyst reads it from their own machine.
 | 3 | First dlt pipeline | TPC-H in `raw` with `replace`; a second run leaves no duplicates (@docs/ingestion.md) | ✅ |
 | 4 | dbt attached | `dbt run --target prod` builds models, readable from a plain `attach('prod')` (@docs/transformation.md) | ✅ |
 | 5 | Prefect flow | one `pipeline_flow` (dlt, then dbt) completes locally (@docs/orchestration.md) | ✅ |
-| 6 | Serverless | a run started from Prefect Cloud completes on the managed pool, with nothing running locally. Produces `docs/operations.md` | |
+| 6 | Serverless | a run started from Prefect Cloud completes on the managed pool, with nothing running locally. Produces `docs/operations.md` | ✅ |
 | 7 | Researcher access | a machine with only read-only keys and a read-only Neon role reads `gold`, and a write from it fails | |
 | 8 | Maintenance | scheduled cleanup, plus a monthly cost figure | after MVP |
 
@@ -33,8 +33,8 @@ the scaffolding tool.
 - **Prefect's managed pool installs from `requirements.txt` and takes no custom
   image.** Anything pinned only in the Containerfile drifts from the cloud.
 - **A dlt connect failure can print the catalog password, and Prefect logs a
-  failed task's traceback.** On the managed pool that text would land in Prefect
-  Cloud (@docs/ingestion.md). Settle this in milestone 6.
+  failed task's traceback.** `redacted()` strips it, tested offline
+  (`tests/test_redaction.py`). Not yet seen in a real Prefect Cloud log.
 
 ## Known bugs
 
