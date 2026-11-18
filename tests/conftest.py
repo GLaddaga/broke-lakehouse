@@ -16,6 +16,10 @@ def pytest_addoption(parser):
         "--lakehouse-env", default="prod", metavar="SLUG",
         help="environment to run against: Infisical slug, Neon branch and bucket "
              "prefix, all the same word (default: prod)")
+    parser.addoption(
+        "--reader", action="store_true",
+        help="the bootstrap credential is a reader's: run tests/test_reader.py, "
+             "which tries to write and expects to be refused")
 
 
 @pytest.fixture(scope="session")

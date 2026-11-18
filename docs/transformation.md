@@ -16,8 +16,8 @@ it builds into.
 
 Credentials and the attach are split up:
 
-- `utils/dbt_plugin.py` is a dbt-duckdb plugin. It calls `credentials()` from
-  `utils/lakehouse.py`, which creates the DuckDB secrets from Infisical using
+- `broke_lakehouse/dbt_plugin.py` is a dbt-duckdb plugin. It calls `credentials()` from
+  `broke_lakehouse/client.py`, which creates the DuckDB secrets from Infisical using
   the same code `attach()` uses. Before that, it runs one `attach()` to check
   the `data_inlining_row_limit = 0` guard, which also stops the run early if
   Neon or the credentials are wrong.
@@ -66,7 +66,7 @@ unreferenced and orphaned files, across the whole lakehouse, `raw` included.
 | Symptom | Cause |
 |---|---|
 | *does not have a target named 'default'* | `--target` missing |
-| *Unable to import module 'utils.dbt_plugin'* | image built before `-e .` was in `requirements.txt`: rebuild |
+| *Unable to import module 'broke_lakehouse.dbt_plugin'* | image built before the package moved to `broke_lakehouse/`: rebuild |
 | *Inconsistency detected between 'path' and 'database'* | `attach:` alias no longer matches `database` |
 | *Secret "lake" was not found* | `plugins:` entry removed, or plugin order changed in an upgrade |
 | `DROP … CASCADE` not supported | the `attach:` path lost its `ducklake:` prefix |

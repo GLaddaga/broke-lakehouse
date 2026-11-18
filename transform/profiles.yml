@@ -5,11 +5,11 @@ lakehouse:
   outputs:
     prod:
       type: duckdb
-      database: lake # LAKE in utils/lakehouse.py; this and the attach below change with it
+      database: lake # LAKE in broke_lakehouse/client.py; this and the attach below change with it
       schema: main # for models with no layer
       threads: 1
       plugins:
-        - module: utils.dbt_plugin
+        - module: broke_lakehouse.dbt_plugin
           config:
             environment: prod
       # The attach itself, through the `lake` secret the plugin created: the

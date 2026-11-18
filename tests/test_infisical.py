@@ -1,4 +1,4 @@
-"""Integration check for utils/secrets/infisical.py.
+"""Integration check for broke_lakehouse/secrets/infisical.py.
 
 Hits the real Infisical API. Two tests, split so the failure tells you where
 to look: the first covers Universal Auth login, the second covers the project
@@ -15,7 +15,7 @@ Skipped when the bootstrap credentials are absent, so a clone without a
 
 import os
 import pytest
-from utils.secrets.infisical import _client, get_secret
+from broke_lakehouse.secrets.infisical import _client, get_secret
 
 EXPECTED = "it-works"
 

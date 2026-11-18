@@ -15,7 +15,7 @@ analyst reads it from their own machine.
 | 4 | dbt attached | `dbt run --target prod` builds models, readable from a plain `attach('prod')` (@docs/transformation.md) | ✅ |
 | 5 | Prefect flow | one `pipeline_flow` (dlt, then dbt) completes locally (@docs/orchestration.md) | ✅ |
 | 6 | Serverless | a run started from Prefect Cloud completes on the managed pool, with nothing running locally. Produces `docs/operations.md` | ✅ |
-| 7 | Researcher access | a machine with only read-only keys and a read-only Neon role reads `gold`, and a write from it fails | |
+| 7 | Researcher access | a machine with only read-only keys and a read-only Neon role reads `gold`, and a write from it fails (`tests/test_reader.py --reader`, @docs/access.md) | |
 | 8 | Maintenance | scheduled cleanup, plus a monthly cost figure | after MVP |
 
 **Later:** Evidence, OpenTofu for the hand-built infrastructure, GitHub Actions,

@@ -65,11 +65,11 @@ All six go in the `prod` environment, at the root path (@docs/secrets.md):
 
 ## Lifecycle commands
 
-All are `python -m utils.lakehouse <command> <environment>` in the container:
+All are `python -m broke_lakehouse.ops <command> <environment>` in the container:
 
 ```bash
 podman run --env-file .env --rm -it -v $(pwd):/workspace localhost/the-broke-lakehouse \
-  python -m utils.lakehouse <command> <environment>
+  python -m broke_lakehouse.ops <command> <environment>
 ```
 
 | Command | Does |

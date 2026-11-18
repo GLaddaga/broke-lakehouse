@@ -16,15 +16,16 @@ FROM docker.io/prefecthq/prefect:3.8.3-python3.12 AS base
 
 WORKDIR /workspace
 
-# requirements.txt is the single source of truth for runtime dependencies,
-# including prefect itself — reinstalled here over the copy baked into the base
-# image. The managed work pool installs from this same file at run time.
+# requirements.txt is the entry point for runtime dependencies: `-e .[pipeline]`,
+# whose pins live in pyproject.toml — prefect included, reinstalled here over
+# the copy baked into the base image. The managed work pool installs from this
+# same file at run time.
 #
-# `-e .` installs `utils` as an editable package pointing at /workspace/utils,
-# so it needs pyproject.toml and utils/ at build time. At run time the repo is
-# mounted over /workspace, and the same path is the live code.
+# Editable, so the package points at /workspace/broke_lakehouse and its source
+# is needed at build time. At run time the repo is mounted over /workspace, and
+# the same path is the live code.
 COPY requirements.txt pyproject.toml ./
-COPY utils/ utils/
+COPY broke_lakehouse/ broke_lakehouse/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Bake the DuckDB extensions in so containers don't fetch them on every start.

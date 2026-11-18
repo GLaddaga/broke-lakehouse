@@ -2,9 +2,11 @@
 
 ## Environment
 
-- `requirements.txt` is the only place runtime dependencies are declared, for
+- Runtime dependencies are pinned in `pyproject.toml` only: the package's own
+  (`duckdb`, `infisicalsdk`, all a reader installs) and a `pipeline` extra for
+  everything else. `requirements.txt` is the entry point, `-e .[pipeline]`, for
   all three components. The Containerfile's `base` stage installs from it, and
-  so does Prefect's managed pool.
+  so does Prefect's managed pool (@docs/access.md).
 - `requirements-dev.txt` holds what only development needs. The `dev` stage adds
   it on top of `base`, and it never reaches the managed pool.
 - Local development happens only inside the Podman container, built from `dev`,
@@ -44,8 +46,8 @@ exists only once something writes to it.
   (@docs/data-storage.md).
 - **The attach alias is `lake`, fixed per project.** DuckLake views store the
   alias in their SQL, so every client must use the same one, and renaming it
-  breaks existing views. It's set in `LAKE` in `utils/lakehouse.py` (for
-  `attach()` and dlt) and in `profiles.yml` (for dbt).
+  breaks existing views. It's set in `LAKE` in `broke_lakehouse/client.py`
+  (for `attach()` and dlt) and in `profiles.yml` (for dbt).
 
 ## Materializations
 

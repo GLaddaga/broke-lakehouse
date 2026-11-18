@@ -7,7 +7,7 @@ Architectural choice details @docs/transformation.md
 
 from dbt.adapters.duckdb.plugins import BasePlugin
 
-from utils.lakehouse import attach, credentials
+from broke_lakehouse.client import attach, credentials
 
 
 class Plugin(BasePlugin):

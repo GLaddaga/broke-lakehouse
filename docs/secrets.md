@@ -1,11 +1,11 @@
 # Secrets
 
 Every secret lives in Infisical and is fetched at run time through
-`utils.secrets.get_secrets(names, *, environment)`. The only exception is the
+`broke_lakehouse.secrets.get_secrets(names, *, environment)`. The only exception is the
 bootstrap credential, which gives access to everything else.
 
-Each secret manager is one module under `utils/secrets/`, and
-`utils/secrets/__init__.py` re-exports the one in use. Swapping managers means
+Each secret manager is one module under `broke_lakehouse/secrets/`, and
+its `__init__.py` re-exports the one in use. Swapping managers means
 a new module, that import, and new bootstrap variables.
 
 The SDK is used instead of the Infisical CLI because Prefect's managed pool

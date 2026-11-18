@@ -1,8 +1,1 @@
-dlt[ducklake,s3]==1.30.0
-dbt-core==1.12.3
-dbt-duckdb==1.11.0
-duckdb==1.5.5
-prefect==3.8.3
-infisicalsdk==1.0.17
-boto3==1.43.75
--e .
+-e .[pipeline]

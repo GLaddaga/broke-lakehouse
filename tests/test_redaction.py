@@ -11,7 +11,7 @@ from unittest import mock
 
 import pytest
 
-import utils.lakehouse as lakehouse
+import broke_lakehouse.ops as lakehouse
 from ingest.pipelines import tpch
 
 SECRETS = {

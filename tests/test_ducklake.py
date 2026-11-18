@@ -23,21 +23,9 @@ import sys
 import duckdb
 import pytest
 
-from utils.secrets import get_secrets
-from utils.lakehouse import (
-    LAKE,
-    _assert_no_inlining,
-    _sql,
-    NAMES,
-    _confirm,
-    _contents,
-    _empty,
-    _path,
-    _pg,
-    attach,
-    initialise,
-    survey
-)
+from broke_lakehouse.client import LAKE, NAMES, _assert_no_inlining, _path, _sql, attach
+from broke_lakehouse.secrets import get_secrets
+from broke_lakehouse.ops import _confirm, _contents, _empty, _pg, initialise, survey
 
 TABLE = "_roundtrip"
 
@@ -138,7 +126,7 @@ def test_roundtrip(environment):
         # read can only have come back through the catalog on Neon.
         fresh = subprocess.run(
             [sys.executable, "-c",
-             "from utils.lakehouse import attach;"
+             "from broke_lakehouse.client import attach;"
              f"print(attach('{environment}').sql("
              f"'SELECT answer FROM {LAKE}.{TABLE}').fetchall()[0][0])"],
             capture_output=True, text=True)

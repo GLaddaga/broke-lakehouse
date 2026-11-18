@@ -16,7 +16,7 @@ from pathlib import Path
 import dlt
 import duckdb
 
-from utils.lakehouse import destination, redacted
+from broke_lakehouse.ops import destination, redacted
 
 TABLES = ("customer", "lineitem", "nation", "orders",
           "part", "partsupp", "region", "supplier")

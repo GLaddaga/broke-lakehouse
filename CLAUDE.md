@@ -23,11 +23,15 @@ Target layout. A data platform monorepo with three components sharing one set of
 
 ```
 the-broke-lakehouse/
-├── requirements.txt            # shared runtime dependencies for ingest, transform, and orchestrate
+├── requirements.txt            # `-e .[pipeline]`: the install for ingest, transform, and orchestrate
 ├── requirements-dev.txt        # development-only dependencies
 ├── Containerfile               # `base` stage from requirements.txt; `dev` stage adds requirements-dev.txt
 ├── .env.example                # Infisical bootstrap credential: names, no values
-├── utils/                    # shared support code for all three components
+├── pyproject.toml              # every pin: the package's own (readers) + the `pipeline` extra
+├── broke_lakehouse/            # the one Python package, shared by all components and readers
+│   ├── client.py               # attach() and the `lake` alias: all a reader needs
+│   ├── ops.py                  # hand-run lakehouse commands, dlt destination
+│   ├── dbt_plugin.py
 │   └── secrets/                # one module per secret manager, same get_secrets()
 │
 ├── ingest/                     # dlt project — extracts raw data into the warehouse
@@ -43,6 +47,7 @@ the-broke-lakehouse/
 │   ├── flows/
 │   └── prefect.yaml            # deployment config (work pool, schedule, build/pull steps)
 │
+├── analyse/                    # sample notebooks, reading gold through the client
 ├── docs/
 └── README.md
 ```

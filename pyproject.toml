@@ -1,13 +1,27 @@
-# Only makes `utils` importable from anywhere — the dbt plugin, Prefect flows,
-# any working directory — through the `-e .` in requirements.txt. Dependencies
-# stay in requirements.txt, not here.
+# Every pin lives here. A reader installs the package alone (duckdb and the
+# secret manager); the pipeline adds the `pipeline` extra, through the
+# `-e .[pipeline]` in requirements.txt. Readers and writers therefore share
+# one DuckDB pin, and so one DuckLake catalog version. @docs/access.md
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "the-broke-lakehouse"
+name = "broke-lakehouse"
 version = "0"
+dependencies = [
+    "duckdb==1.5.5",
+    "infisicalsdk==1.0.17",
+]
+
+[project.optional-dependencies]
+pipeline = [
+    "dlt[ducklake,s3]==1.30.0",
+    "dbt-core==1.12.3",
+    "dbt-duckdb==1.11.0",
+    "prefect==3.8.3",
+    "boto3==1.43.75",
+]
 
 [tool.setuptools]
-packages = ["utils", "utils.secrets"]
+packages = ["broke_lakehouse", "broke_lakehouse.secrets"]
