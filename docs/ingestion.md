@@ -5,7 +5,7 @@ environment as its first argument:
 
 ```bash
 podman run --env-file .env --rm -v $(pwd):/workspace -w /workspace \
-  localhost/the-broke-lakehouse python -m ingest.pipelines.<name> <environment>
+  localhost/broke-lakehouse python -m ingest.pipelines.<name> <environment>
 ```
 
 ## How it reaches the lakehouse

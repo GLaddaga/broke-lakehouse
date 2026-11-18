@@ -68,7 +68,7 @@ All six go in the `prod` environment, at the root path (@docs/secrets.md):
 All are `python -m broke_lakehouse.ops <command> <environment>` in the container:
 
 ```bash
-podman run --env-file .env --rm -it -v $(pwd):/workspace localhost/the-broke-lakehouse \
+podman run --env-file .env --rm -it -v $(pwd):/workspace localhost/broke-lakehouse \
   python -m broke_lakehouse.ops <command> <environment>
 ```
 
@@ -84,7 +84,7 @@ New environment: `survey` → `purge` if anything was found → run
 
 ```bash
 podman run --env-file .env --rm -v $(pwd):/workspace \
-  localhost/the-broke-lakehouse python -m pytest tests/ -v --lakehouse-env <environment>
+  localhost/broke-lakehouse python -m pytest tests/ -v --lakehouse-env <environment>
 ```
 
 ## Gotchas

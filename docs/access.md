@@ -11,7 +11,7 @@ come with the `pipeline` extra, which only `requirements.txt` asks for.
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
-pip install "broke-lakehouse @ git+https://github.com/GLaddaga/the-broke-lakehouse@<tag>" jupyterlab
+pip install "broke-lakehouse @ git+https://github.com/GLaddaga/broke-lakehouse@<tag>" jupyterlab
 set -a; . ./.env.reader; set +a      # the reader's three Infisical variables
 ```
 
@@ -30,7 +30,7 @@ Sample notebooks are in `analyse/`. To run them in this repo's container:
 
 ```bash
 podman run --env-file .env.reader --rm -it -p 8888:8888 -v $(pwd):/workspace \
-  localhost/the-broke-lakehouse \
+  localhost/broke-lakehouse \
   jupyter lab --ip 0.0.0.0 --no-browser --allow-root --notebook-dir analyse
 ```
 
@@ -70,7 +70,7 @@ keys. The code doesn't change: the secret names and the `prod` slug are the same
 
 ```bash
 podman run --env-file .env.reader --rm -v $(pwd):/workspace \
-  localhost/the-broke-lakehouse python -m pytest tests/test_reader.py -v --reader
+  localhost/broke-lakehouse python -m pytest tests/test_reader.py -v --reader
 ```
 
 The test reads `gold`, then tries two writes. Each must be refused by a

@@ -3,8 +3,8 @@
 #   dev   base plus requirements-dev.txt. All local work happens in here, there
 #         is no venv. It's the last stage, so it's what a plain build produces:
 #
-#   podman build -t the-broke-lakehouse .
-#   podman build --target base -t the-broke-lakehouse:base .
+#   podman build -t broke-lakehouse .
+#   podman build --target base -t broke-lakehouse:base .
 #
 # Base is the same image Prefect's managed work pool runs, pinned rather than
 # tracking :3-latest so it can't move underneath us. Bump this together with

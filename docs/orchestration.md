@@ -5,7 +5,7 @@ process. The lakehouse must already be initialised (@docs/data-storage.md).
 
 ```bash
 podman run --env-file .env --rm -v $(pwd):/workspace -w /workspace \
-  localhost/the-broke-lakehouse python -m orchestrate.flows.pipeline <environment> --sf 1
+  localhost/broke-lakehouse python -m orchestrate.flows.pipeline <environment> --sf 1
 ```
 
 Without `PREFECT_API_URL`, Prefect starts a temporary local server for the run,

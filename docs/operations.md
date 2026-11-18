@@ -39,7 +39,7 @@ The two IDs are in the workspace's URL in the browser. Then, from the repo root:
 
 ```bash
 podman run --rm --env-file .env.prefect -v $(pwd):/workspace -w /workspace \
-  localhost/the-broke-lakehouse \
+  localhost/broke-lakehouse \
   prefect --no-prompt deploy --prefect-file orchestrate/prefect.yaml --all
 ```
 

@@ -54,5 +54,5 @@ The AWS-standard names are read natively by DuckDB and dlt. Switching provider
 
 ```bash
 podman run --env-file .env --rm -v $(pwd):/workspace \
-  localhost/the-broke-lakehouse python -m pytest tests/test_infisical.py -v
+  localhost/broke-lakehouse python -m pytest tests/test_infisical.py -v
 ```

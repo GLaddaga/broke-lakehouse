@@ -6,7 +6,7 @@ dbt, in `transform/`, through `dbt-duckdb` attached to the DuckLake catalog.
 
 ```bash
 podman run --env-file .env --rm -v $(pwd):/workspace -w /workspace/transform \
-  localhost/the-broke-lakehouse dbt run --target prod
+  localhost/broke-lakehouse dbt run --target prod
 ```
 
 There is no default target, on purpose: the command has to say which lakehouse
@@ -48,7 +48,7 @@ table, and the old files remain until maintenance removes them.
 
 ```bash
 podman run --env-file .env --rm -v $(pwd):/workspace -w /workspace/transform \
-  localhost/the-broke-lakehouse dbt run-operation maintain_ducklake --target prod \
+  localhost/broke-lakehouse dbt run-operation maintain_ducklake --target prod \
   --args '{retention: 7 days}'
 ```
 

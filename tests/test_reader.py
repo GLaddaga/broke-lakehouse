@@ -1,7 +1,7 @@
 """Milestone 7: a reader's credentials read `gold`, and every write is refused.
 
     podman run --env-file .env.reader --rm -v $(pwd):/workspace \
-      localhost/the-broke-lakehouse python -m pytest tests/test_reader.py -v --reader
+      localhost/broke-lakehouse python -m pytest tests/test_reader.py -v --reader
 
 Opt-in with --reader: with a writer's credentials the writes below succeed,
 which is a failure here (and is undone at once), so a plain `pytest tests/`

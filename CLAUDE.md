@@ -1,4 +1,4 @@
-# The Broke Lakehouse
+# Broke Lakehouse
 
 ## Manifesto
 Cheap, reproducible lakehouse stack: dlt → dbt / DuckDB + DuckLake → S3-compatible object storage, orchestrated with an
@@ -22,7 +22,7 @@ open-source tool (e.g. Prefect, Airflow). Full story @docs/manifesto.md.
 Target layout. A data platform monorepo with three components sharing one set of dependencies:
 
 ```
-the-broke-lakehouse/
+broke-lakehouse/
 ├── requirements.txt            # `-e .[pipeline]`: the install for ingest, transform, and orchestrate
 ├── requirements-dev.txt        # development-only dependencies
 ├── Containerfile               # `base` stage from requirements.txt; `dev` stage adds requirements-dev.txt

@@ -1,7 +1,7 @@
 """End-to-end check that an environment is reachable and that data actually flows.
 
     podman run --env-file .env --rm -v $(pwd):/workspace \
-      localhost/the-broke-lakehouse python -m pytest tests/test_ducklake.py -v \
+      localhost/broke-lakehouse python -m pytest tests/test_ducklake.py -v \
       --lakehouse-env <environment>
 
 Fetches the Neon and object-storage credentials from Infisical, creates the

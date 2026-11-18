@@ -4,13 +4,13 @@
 #
 # The pool clones `main` from GitHub, so only pushed commits run. The Infisical
 # credential comes from Secret blocks, which the flow loads itself. @docs/orchestration.md
-name: the-broke-lakehouse
+name: broke-lakehouse
 prefect-version: 3.8.3
 
 pull:
   - prefect.deployments.steps.git_clone:
       id: clone
-      repository: https://github.com/GLaddaga/the-broke-lakehouse.git
+      repository: https://github.com/GLaddaga/broke-lakehouse.git
       branch: main
   - prefect.deployments.steps.pip_install_requirements:
       directory: "{{ clone.directory }}"
