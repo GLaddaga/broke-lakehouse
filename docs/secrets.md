@@ -16,10 +16,11 @@ installs pip packages only.
 A Universal Auth machine identity plus the project ID:
 `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, `INFISICAL_PROJECT_ID`.
 
-- **Locally:** `cp .env.example .env` and fill it in. Use plain `KEY=VALUE` lines,
-  because `--env-file` keeps quotes as part of the value and does no `$VAR` expansion.
-- **Prefect:** three Secret blocks, which `pipeline_flow` loads itself
-  (@docs/operations.md).
+- **Locally:** a gitignored `.env.runner`, written by every `tofu apply`
+  (@docs/infrastructure.md). `.env.runner.example` shows its shape. Plain `KEY=VALUE`
+  lines, because `--env-file` keeps quotes as part of the value and does no `$VAR` expansion.
+- **Prefect:** three Secret blocks, created by tofu, which `pipeline_flow` loads
+  itself (@docs/operations.md).
 
 ## Contract
 
@@ -36,23 +37,18 @@ A Universal Auth machine identity plus the project ID:
 The AWS-standard names are read natively by DuckDB and dlt. Switching provider
 (Tigris → R2 → S3) is a change of values, not of code.
 
-## Setup in the Infisical UI
+## Setup
 
-1. Create a project. Only the `Production` environment is used. Its **slug** is
-   `prod`, and the SDK takes the slug. Passing the name `Production` silently
-   returns nothing.
-2. Project → Settings → General: the project ID.
-3. Add the contract secrets at the root of `Production`, plus `TEST_SECRET=it-works`.
-4. Organization → Access Control → Identities → create `<project>-prd-runner`
-   with org role **No Access**.
-5. Add **Universal Auth** to it and create a client secret (shown once).
-6. In the project → Access Control → Identities, add the identity as
-   **Viewer**. **Without this, login still succeeds and every read returns
-   empty.**
+`infra/secrets.tf` (@docs/infrastructure.md): a project with one environment,
+`prod`. The SDK takes the slug, and passing the name `Production` silently
+returns nothing. The contract secrets plus `TEST_SECRET=it-works` sit at its
+root, and a machine identity with org role **No Access** is **Viewer** on the
+project. Without that membership, login still succeeds and every read returns
+empty.
 
 ## Check
 
 ```bash
-podman run --env-file .env --rm -v $(pwd):/workspace \
+podman run --env-file .env.runner --rm -v $(pwd):/workspace \
   localhost/broke-lakehouse python -m pytest tests/test_infisical.py -v
 ```

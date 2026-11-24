@@ -23,7 +23,7 @@ BOOTSTRAP = ("INFISICAL_CLIENT_ID", "INFISICAL_CLIENT_SECRET", "INFISICAL_PROJEC
 def _bootstrap() -> None:
     """
     The Infisical credential from Prefect Secret blocks (`infisical-client-id`
-    and so on), for the managed pool. Locally the `.env` already set them, so no
+    and so on), for the managed pool. Locally the `.env.runner` already set them, so no
     block is read. Loaded here rather than through `job_variables.env`, because
     `prefect deploy` would resolve the block references into the deployment.
     """

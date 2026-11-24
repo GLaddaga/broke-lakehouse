@@ -5,7 +5,7 @@
 
 Opt-in with --reader: with a writer's credentials the writes below succeed,
 which is a failure here (and is undone at once), so a plain `pytest tests/`
-with the writer's .env skips this file.
+with the writer's .env.runner skips this file.
 
 Each write fails in a different place, so each test proves one credential:
 a CREATE SCHEMA only touches the catalog (the Neon role), a CREATE TABLE AS

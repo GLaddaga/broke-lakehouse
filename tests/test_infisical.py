@@ -10,7 +10,7 @@ Needs a mock secret at the root path of whichever environment is under test
     TEST_SECRET = it-works
 
 Skipped when the bootstrap credentials are absent, so a clone without a
-`.env` does not fail.
+`.env.runner` does not fail.
 """
 
 import os

@@ -39,3 +39,10 @@ FROM base AS dev
 
 COPY requirements-dev.txt ./
 RUN pip install --no-cache-dir -r requirements-dev.txt
+
+# OpenTofu, for infra/ only, so dev-only: the managed pool never runs it.
+# 1.11+ is required (ephemeral resources, write-only arguments). @docs/infrastructure.md
+ARG TOFU_VERSION=1.13.8
+ARG TARGETARCH
+ADD https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_linux_${TARGETARCH}.tar.gz /tmp/tofu.tar.gz
+RUN tar -xzf /tmp/tofu.tar.gz -C /usr/local/bin tofu && rm /tmp/tofu.tar.gz && tofu version

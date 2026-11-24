@@ -5,7 +5,7 @@ dbt, in `transform/`, through `dbt-duckdb` attached to the DuckLake catalog.
 ## Run
 
 ```bash
-podman run --env-file .env --rm -v $(pwd):/workspace -w /workspace/transform \
+podman run --env-file .env.runner --rm -v $(pwd):/workspace -w /workspace/transform \
   localhost/broke-lakehouse dbt run --target prod
 ```
 
@@ -47,7 +47,7 @@ table, and the old files remain until maintenance removes them.
 ## Maintenance
 
 ```bash
-podman run --env-file .env --rm -v $(pwd):/workspace -w /workspace/transform \
+podman run --env-file .env.runner --rm -v $(pwd):/workspace -w /workspace/transform \
   localhost/broke-lakehouse dbt run-operation maintain_ducklake --target prod \
   --args '{retention: 7 days}'
 ```

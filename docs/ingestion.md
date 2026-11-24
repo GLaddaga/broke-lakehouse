@@ -4,7 +4,7 @@ dlt pipelines live in `ingest/pipelines/`. Each one is a module that takes the
 environment as its first argument:
 
 ```bash
-podman run --env-file .env --rm -v $(pwd):/workspace -w /workspace \
+podman run --env-file .env.runner --rm -v $(pwd):/workspace -w /workspace \
   localhost/broke-lakehouse python -m ingest.pipelines.<name> <environment>
 ```
 

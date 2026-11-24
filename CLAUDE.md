@@ -15,6 +15,7 @@ open-source tool (e.g. Prefect, Airflow). Full story @docs/manifesto.md.
 - **dbt** — transformation, via `dbt-duckdb` adapter attached to the DuckLake catalog.
 - **Infisical** — the data credentials (object-storage keys, Neon conn string).
 - **Prefect Cloud (free/Hobby tier, serverless work pool)** — orchestrator.
+- **OpenTofu** — all of the above provisioned from `infra/`, state encrypted on Tigris (@docs/infrastructure.md).
 - **Podman** — local development environment.
 
 ## Project Structure
@@ -26,7 +27,9 @@ broke-lakehouse/
 ├── requirements.txt            # `-e .[pipeline]`: the install for ingest, transform, and orchestrate
 ├── requirements-dev.txt        # development-only dependencies
 ├── Containerfile               # `base` stage from requirements.txt; `dev` stage adds requirements-dev.txt
-├── .env.example                # Infisical bootstrap credential: names, no values
+├── .env.runner.example         # Infisical bootstrap credential: names, no values
+├── .env.tofu.example           # tofu's admin credentials: names, no values
+├── project.example.yaml        # project-level config (lakehouse name, region); the real project.yaml is gitignored
 ├── pyproject.toml              # every pin: the package's own (readers) + the `pipeline` extra
 ├── broke_lakehouse/            # the one Python package, shared by all components and readers
 │   ├── client.py               # attach() and the `lake` alias: all a reader needs
@@ -47,6 +50,7 @@ broke-lakehouse/
 │   ├── flows/
 │   └── prefect.yaml            # deployment config (work pool, schedule, build/pull steps)
 │
+├── infra/                      # OpenTofu root module: Tigris, Neon, Infisical, Prefect for `prod`
 ├── analyse/                    # sample notebooks, reading gold through the client
 ├── docs/
 └── README.md
@@ -62,5 +66,5 @@ broke-lakehouse/
 - Claude defaults to suggestion and review, proposes changes in chat and does not write files unless asked. The human does the development.
 - Prefer amending what exists over adding a layer on top of it.
 - Flag over-engineering in review even when the code is correct.
-- No secret hardcoded or in a committed file. Everything pulled from Infisical at runtime. The Infisical machine identity (Universal Auth client ID/secret, plus the project ID) — in Prefect three Secret blocks, locally a gitignored `.env` injected by `podman --env-file`. `.env.example` carries the structure with no values.
+- No secret hardcoded or in a committed file. Everything pulled from Infisical at runtime. The Infisical machine identity (Universal Auth client ID/secret, plus the project ID) — in Prefect three Secret blocks, locally a gitignored `.env.runner` injected by `podman --env-file`, both written by tofu. Tofu's own admin credentials are in a gitignored `.env.tofu`. `.env.runner.example` carries the structure with no values.
 - No always-on process, no laptop-as-scheduler. Prefect's serverless work pool runs the flow on schedule; nothing runs in between.

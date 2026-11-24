@@ -15,11 +15,12 @@ analyst reads it from their own machine.
 | 4 | dbt attached | `dbt run --target prod` builds models, readable from a plain `attach('prod')` (@docs/transformation.md) | ✅ |
 | 5 | Prefect flow | one `pipeline_flow` (dlt, then dbt) completes locally (@docs/orchestration.md) | ✅ |
 | 6 | Serverless | a run started from Prefect Cloud completes on the managed pool, with nothing running locally. Produces `docs/operations.md` | ✅ |
+| 6½ | Infrastructure as code | `tofu apply` from a clone plus the bootstrap builds `prod` and the reader's credentials, and a second `plan` shows no changes (@docs/infrastructure.md) | |
 | 7 | Researcher access | a machine with only read-only keys and a read-only Neon role reads `gold`, and a write from it fails (`tests/test_reader.py --reader`, @docs/access.md) | |
 | 8 | Maintenance | scheduled cleanup, plus a monthly cost figure | after MVP |
 
-**Later:** Evidence, OpenTofu for the hand-built infrastructure, GitHub Actions,
-the scaffolding tool.
+**Later:** Evidence, GitHub Actions (its `tofu apply` takes
+`-exclude=local_sensitive_file.env`, @docs/infrastructure.md), the scaffolding tool.
 
 ## Known risks
 
@@ -35,6 +36,14 @@ the scaffolding tool.
 - **A dlt connect failure can print the catalog password, and Prefect logs a
   failed task's traceback.** `redacted()` strips it, tested offline
   (`tests/test_redaction.py`). Not yet seen in a real Prefect Cloud log.
+- **Workaround to remove: Tigris policy attachment runs boto3 from tofu.** No
+  provider can attach a policy to a Tigris key (the AWS provider rejects
+  Tigris's `to_…` ARNs, Tigris doesn't implement inline policies, the Tigris
+  provider has no key resources), so `terraform_data.policy_attachment` calls
+  Tigris's IAM through a `local-exec`. Replace it when Tigris ships a native
+  way (@docs/infrastructure.md).
+- **The Neon provider is a beta** (`neondatabase/neon`, the successor of the
+  archived `kislerdm/neon`), pinned exactly. Read the changelog before bumping.
 
 ## Known bugs
 

@@ -34,37 +34,19 @@ podman run --env-file .env.reader --rm -it -p 8888:8888 -v $(pwd):/workspace \
   jupyter lab --ip 0.0.0.0 --no-browser --allow-root --notebook-dir analyse
 ```
 
-## Setup: read-only credentials
+## Read-only credentials
 
-**Tigris:** a new access key, role **ReadOnly**, scoped to the bucket.
+All of it is tofu (@docs/infrastructure.md). Every apply writes `.env.reader`,
+and its three values are what a researcher receives.
 
-**Neon:** create the role in SQL. A role made in the console joins
-`neon_superuser` and can write. Run this as `<lakehouse>_runner` on
-`ducklake_catalog`, with a strong password (`openssl rand -hex 24`):
-
-```sql
-CREATE ROLE <lakehouse>_reader WITH LOGIN PASSWORD '<generated>';
-GRANT CONNECT ON DATABASE ducklake_catalog TO <lakehouse>_reader;
-GRANT USAGE ON SCHEMA public TO <lakehouse>_reader;
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO <lakehouse>_reader;
-ALTER DEFAULT PRIVILEGES FOR ROLE <lakehouse>_runner IN SCHEMA public
-  GRANT SELECT ON TABLES TO <lakehouse>_reader;   -- tables added by future DuckLake versions
-```
-
-Its `DUCKLAKE_CATALOG_URI` is the runner's unpooled string with the reader's
-role and password.
-
-**Infisical:** a separate project, so the reader identity never sees the write
-keys. The code doesn't change: the secret names and the `prod` slug are the same.
-
-1. Create project `<lakehouse>-reader`, with environment slug `prod`.
-2. Add the six contract secrets (@docs/secrets.md) with the reader URI and the
-   ReadOnly key pair. Path, endpoint and region are the same as the writer's.
-   Add `TEST_SECRET=it-works` too.
-3. Create identity `<lakehouse>-reader` with org role **No Access** and
-   Universal Auth. Make it **Viewer** on this project only.
-4. Put its client ID and secret and the project ID in a gitignored `.env.reader`.
-   These three values are what a researcher receives.
+- **Tigris:** a key whose policy allows only `GetObject` and `ListBucket` on the bucket.
+- **Neon:** `<lakehouse>_reader`, created in SQL as the runner, because a role
+  made through the console or API joins `neon_superuser` and can write. It gets
+  `CONNECT`, `USAGE` on `public`, `SELECT` on its tables, and default privileges
+  for tables the runner adds later (DuckLake creates them at `initialise`).
+- **Infisical:** a separate project, `<lakehouse>-reader`, so the reader
+  identity never sees the write keys. The secret names and the `prod` slug are
+  the same as the writer's, so the code doesn't change.
 
 ## Check
 

@@ -4,7 +4,7 @@
 
 One word names the Infisical slug, the Neon branch and the bucket prefix, so
 this single option selects the catalog, the credentials and the data path at
-once. It is not in `.env`: which lake a run touches is a decision per run, and
+once. It is not in `.env.runner`: which lake a run touches is a decision per run, and
 one that should be visible in the command that makes it.
 """
 

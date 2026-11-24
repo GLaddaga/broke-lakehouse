@@ -53,7 +53,7 @@ The platform's building blocks, split into the core every implementation shares 
 * **Ingestion:** [dlt](https://dlthub.com/docs/intro)
 * **Transformation:** [dbt Core](https://docs.getdbt.com/)
 * **Visualization:** [Evidence Core](https://docs.evidence.dev/) *(later)*
-* **IaC:** [OpenTofu](https://opentofu.org/docs/) *(later)*
+* **IaC:** [OpenTofu](https://opentofu.org/docs/)
 
 **Pluggable:**
 * **Secret manager:** any, behind a thin wrapper exposing the same function

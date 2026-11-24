@@ -1,6 +1,6 @@
 """End-to-end check that an environment is reachable and that data actually flows.
 
-    podman run --env-file .env --rm -v $(pwd):/workspace \
+    podman run --env-file .env.runner --rm -v $(pwd):/workspace \
       localhost/broke-lakehouse python -m pytest tests/test_ducklake.py -v \
       --lakehouse-env <environment>
 

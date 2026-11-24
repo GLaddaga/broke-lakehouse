@@ -15,12 +15,12 @@ Every run starts from nothing. The pool clones `main` from GitHub, runs
   `pipeline_flow` loads itself. They're not in `job_variables.env`, because
   `prefect deploy` would write their values into the deployment.
 
-## One-time setup in the UI
+## Setup
 
-1. Work Pools → **+** → **Prefect Managed**, named `managed`.
-2. Blocks → **+** → **Secret**, three of them, with the values from `.env`:
-   `infisical-client-id`, `infisical-client-secret`, `infisical-project-id`.
-3. Avatar → **API keys** → create one, for deploying.
+The pool `managed` and the three Secret blocks (`infisical-client-id`,
+`infisical-client-secret`, `infisical-project-id`) are created by tofu
+(@docs/infrastructure.md). By hand: an API key (avatar → **API keys**), which
+both tofu and `prefect deploy` use.
 
 ## Deploying
 
@@ -28,7 +28,7 @@ Needed only when `orchestrate/prefect.yaml` changes. The UI can't create a
 deployment.
 
 Put the API key and the workspace URL in a gitignored `.env.prefect`, not in
-`.env`, so that local runs stay local:
+`.env.runner`, so that local runs stay local:
 
 ```
 PREFECT_API_KEY=
@@ -57,5 +57,6 @@ count. An idle or unpaused pool costs nothing.
 
 ## Rotating the Infisical credential
 
-Create a new client secret on the machine identity in Infisical, then update the
-`infisical-client-secret` block and `.env`. Nothing needs redeploying.
+`tofu apply -replace='infisical_identity_universal_auth_client_secret.this["runner"]'`
+updates the block and `.env.runner` in the same apply (@docs/infrastructure.md).
+Nothing needs redeploying.

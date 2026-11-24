@@ -1,8 +1,10 @@
 {
   "permissions": {
     "deny": [
-      "Read(./.env)",
-      "Read(./.env.prefect)"
+      "Read(./.env.runner)",
+      "Read(./.env.reader)",
+      "Read(./.env.prefect)",
+      "Read(./.env.tofu)"
     ]
   },
   "enabledPlugins": {

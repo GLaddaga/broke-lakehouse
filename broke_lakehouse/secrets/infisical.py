@@ -6,7 +6,7 @@ Auth (machine identity) is bootstrapped from environment variables:
     INFISICAL_CLIENT_SECRET
     INFISICAL_PROJECT_ID
 These are the *only* secrets that should ever be placed manually
-(local .env, Prefect deployment env, k8s secret, etc).
+(local .env.runner, Prefect deployment env, k8s secret, etc).
 Everything else is fetched from Infisical on demand.
 """
 

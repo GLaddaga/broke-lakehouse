@@ -1,0 +1,12 @@
+# Project-level configuration. Copy to project.yaml (gitignored) and fill in.
+# Read by OpenTofu (infra/main.tf). @docs/infrastructure.md
+
+lakehouse:
+  # Names the data bucket (and `<name>-tfstate` for the state), the Neon
+  # project, the Infisical projects and the roles. Lowercase letters, digits
+  # and dashes. Permanent: the catalog records the data path on first attach.
+  name: my-lakehouse
+
+neon:
+  # e.g. aws-eu-central-1. Permanent: a Neon project can't be moved.
+  region: aws-eu-central-1

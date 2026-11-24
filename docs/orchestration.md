@@ -4,7 +4,7 @@
 process. The lakehouse must already be initialised (@docs/data-storage.md).
 
 ```bash
-podman run --env-file .env --rm -v $(pwd):/workspace -w /workspace \
+podman run --env-file .env.runner --rm -v $(pwd):/workspace -w /workspace \
   localhost/broke-lakehouse python -m orchestrate.flows.pipeline <environment> --sf 1
 ```
 
