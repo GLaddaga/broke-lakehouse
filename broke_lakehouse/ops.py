@@ -157,7 +157,7 @@ def initialise(environment: str, *, force: bool = False) -> None:
                            f"object(s) in the bucket — `survey {environment}` lists them")
 
 
-    con = attach(environment, verify=False)
+    con = attach(environment, create=True, verify=False)
     con.sql(f"CALL {LAKE}.set_option('data_inlining_row_limit', 0)")
     con.close()
 

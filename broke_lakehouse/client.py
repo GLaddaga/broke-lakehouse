@@ -116,11 +116,14 @@ def credentials(environment: str, con: duckdb.DuckDBPyConnection) -> None:
         )""")
 
 
-def attach(environment: str, *, verify: bool = True) -> duckdb.DuckDBPyConnection:
-    """The secrets and the ATTACH from docs/data-storage.md, nothing else."""
+def attach(environment: str, *, create: bool = False, verify: bool = True) -> duckdb.DuckDBPyConnection:
+    """
+    Opens connection, loads credentials in DuckDB secret objects and attaches DuckLake.
+    Creates DuckLake if it does not exist only when `create` is set as `True` (only in `initialise()` as we don't want empty catalogs created accidentally).
+    """
     con = duckdb.connect()
     credentials(environment, con)
-    con.sql(f"ATTACH 'ducklake:{LAKE}' AS {LAKE}")
+    con.sql(f"ATTACH 'ducklake:{LAKE}' AS {LAKE} (CREATE_IF_NOT_EXISTS {str(create).lower()})")
     if verify:
         _assert_no_inlining(con)
     return con

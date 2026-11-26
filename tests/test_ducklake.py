@@ -98,6 +98,12 @@ def test_roundtrip(environment):
                     f"table(s) in Neon, {len(objects)} object(s) under {prefix}; "
                     "this test tears both down")
 
+    # Only initialise() may create the catalog: a plain attach on an empty
+    # lakehouse refuses, and the refusal must leave nothing behind in Neon.
+    with pytest.raises(duckdb.InvalidInputException, match="explicitly disabled"):
+        attach(environment)
+    assert survey(s) == ([], []), "a refused attach left something behind"
+
     initialise(environment)
     con = attach(environment)  # plain attach: the limit can only come from the catalog
     try:
@@ -148,8 +154,9 @@ def test_guard_refuses_a_catalog_without_the_inlining_option(tmp_path):
     """
     The regression that the round trip above cannot catch: it runs only against
     a lake that does not exist yet, so a *live* lake whose option went missing —
-    purged and then reopened by a bare attach — would go unnoticed until rows
-    turned up in the catalog. Local DuckDB catalog, no credentials, always runs.
+    a catalog created by anything other than initialise(), which attach() itself
+    no longer does — would go unnoticed until rows turned up in the catalog.
+    Local DuckDB catalog, no credentials, always runs.
     """
     con = duckdb.connect()
     con.load_extension("ducklake")

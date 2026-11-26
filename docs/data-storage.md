@@ -62,9 +62,13 @@ podman run --env-file .env.runner --rm -it -v $(pwd):/workspace localhost/broke-
 | Command | Does |
 |---|---|
 | `survey` | read-only listing of catalog tables and bucket objects |
-| `initialise` | creates the catalog; refuses if one exists. `--force` purges first |
+| `initialise` | creates the catalog, the only command that can; refuses if one exists. `--force` purges first |
 | `reset` | drops every table, view and schema and deletes their files; keeps the catalog |
 | `purge` | destroys catalog and files, bypassing DuckLake. Asks for confirmation, so it needs `-it` |
+
+Every other client attaches with `CREATE_IF_NOT_EXISTS false`, so a pipeline,
+dbt or a reader pointed at an environment before `initialise` fails with
+"creating a new DuckLake is explicitly disabled" and leaves Neon untouched.
 
 New environment: `survey` → `purge` if anything was found → run
 `tests/test_ducklake.py` (needs an empty lakehouse, skips otherwise) → `initialise`.

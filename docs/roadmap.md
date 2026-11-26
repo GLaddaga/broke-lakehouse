@@ -44,10 +44,3 @@ analyst reads it from their own machine.
   way (@docs/infrastructure.md).
 - **The Neon provider is a beta** (`neondatabase/neon`, the successor of the
   archived `kislerdm/neon`), pinned exactly. Read the changelog before bumping.
-
-## Known bugs
-
-- **`attach()` creates a catalog on an empty lakehouse, without the inlining
-  option.** Running a pipeline before `initialise` fails the guard but leaves the
-  catalog behind, and `initialise` then refuses without `--force`. Fix: check for
-  `ducklake_*` tables before attaching.
