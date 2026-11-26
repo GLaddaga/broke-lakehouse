@@ -142,8 +142,6 @@ provider's changelog when bumping its pin.
 
 Written against the providers' schemas, not yet applied:
 
-- **The S3 lockfile on Tigris** (`use_lockfile`). If `init` or `plan` fails on
-  the lock, remove it: there's one operator.
 - **Postgres provider configured from a resource created in the same apply.**
   If the first `apply` complains about its provider configuration, run
   `tofu apply -target=neon_project.catalog` first.
