@@ -19,7 +19,7 @@ Credentials and the attach are split up:
 - `broke_lakehouse/dbt_plugin.py` is a dbt-duckdb plugin. It calls `credentials()` from
   `broke_lakehouse/client.py`, which creates the DuckDB secrets from Infisical using
   the same code `attach()` uses. Before that, it runs one `attach()` to check
-  the `data_inlining_row_limit = 0` guard, which also stops the run early if
+  the initialised-catalog guard, which also stops the run early if
   Neon or the credentials are wrong.
 - `profiles.yml` holds only `ATTACH 'ducklake:lake' AS lake`. `ducklake:lake`
   refers to a secret, so the file has no credentials in it.

@@ -23,9 +23,10 @@ import sys
 import duckdb
 import pytest
 
-from broke_lakehouse.client import LAKE, NAMES, _assert_no_inlining, _path, _sql, attach
+from broke_lakehouse.client import LAKE, NAMES, _assert_initialised, _path, _sql, attach
 from broke_lakehouse.secrets import get_secrets
-from broke_lakehouse.ops import _confirm, _contents, _empty, _pg, initialise, survey
+from broke_lakehouse.ops import (_apply_inlining_options, _confirm, _contents, _empty,
+                                 _pg, _project_limit, initialise, survey)
 
 TABLE = "_roundtrip"
 
@@ -150,22 +151,50 @@ def test_roundtrip(environment):
     pg.close()
 
 
-def test_guard_refuses_a_catalog_without_the_inlining_option(tmp_path):
+def test_configure_repairs_and_changes_the_limit(tmp_path):
     """
     The regression that the round trip above cannot catch: it runs only against
     a lake that does not exist yet, so a *live* lake whose option went missing —
-    a catalog created by anything other than initialise(), which attach() itself
-    no longer does — would go unnoticed until rows turned up in the catalog.
+    an initialise() interrupted between creating the catalog and setting the
+    limit — would go unnoticed until rows turned up in the catalog. Then the
+    repair, and a change, through the step initialise() and configure() share.
     Local DuckDB catalog, no credentials, always runs.
     """
     con = duckdb.connect()
     con.load_extension("ducklake")
     con.sql(f"ATTACH 'ducklake:{tmp_path}/cat.duckdb' AS {LAKE} "
             f"(DATA_PATH '{tmp_path}/data/')")
+    project = tmp_path / "project.yaml"
 
     with pytest.raises(RuntimeError, match="data_inlining_row_limit"):
-        _assert_no_inlining(con)  # a bare attach persists no option at all
+        _assert_initialised(con)  # a bare attach persists no option at all
 
-    con.sql(f"CALL {LAKE}.set_option('data_inlining_row_limit', 0)")
-    _assert_no_inlining(con)  # and passes once initialise() would have set it
+    project.write_text("lakehouse:\n  inlining_row_limit: 5\n")
+    assert _apply_inlining_options(con, project) == (None, 5)
+    _assert_initialised(con)  # any chosen limit passes, not only 0
+
+    project.write_text("lakehouse:\n  inlining_row_limit: 0\n")
+    assert _apply_inlining_options(con, project) == ("5", 0)
     con.close()
+
+
+@pytest.mark.parametrize("text, limit", [
+    ("lakehouse:\n  inlining_row_limit: 1_000\n", 1000),  # safe loader: a plain int
+    ("lakehouse:\n  name: x\n", 0),                         # key absent
+    ("", 0),                                                # empty file
+])
+def test_project_limit_reads(tmp_path, text, limit):
+    (tmp_path / "project.yaml").write_text(text)
+    assert _project_limit(tmp_path / "project.yaml") == limit
+
+
+@pytest.mark.parametrize("value", ["-1", "true", "yes", '"10"', "1.5"])
+def test_project_limit_refuses(tmp_path, value):
+    (tmp_path / "project.yaml").write_text(f"lakehouse:\n  inlining_row_limit: {value}\n")
+    with pytest.raises(RuntimeError, match="whole number"):
+        _project_limit(tmp_path / "project.yaml")
+
+
+def test_project_limit_needs_the_file(tmp_path):
+    with pytest.raises(RuntimeError, match="repo root"):
+        _project_limit(tmp_path / "project.yaml")

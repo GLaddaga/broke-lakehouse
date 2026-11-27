@@ -26,6 +26,7 @@ and fill it in. Tofu reads it with `yamldecode` (`local.project` in
 |---|---|
 | `lakehouse.name` | `<lakehouse>` below: the data bucket, the state bucket `<lakehouse>-tfstate`, the Neon project, the Infisical projects and identities, the roles (Postgres ones with `-` turned into `_`). Permanent once data exists |
 | `neon.region` | where the Neon project lives. Permanent |
+| `lakehouse.inlining_row_limit` | not read by tofu: `initialise` and `configure` apply it to the catalog (@docs/data-storage.md) |
 
 Keep a copy with the passphrase: a clone without it can't find its state bucket.
 

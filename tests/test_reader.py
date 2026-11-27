@@ -16,7 +16,7 @@ storage key). @docs/access.md
 import duckdb
 import pytest
 
-from broke_lakehouse.client import LAKE, attach
+from broke_lakehouse.client import LAKE, _persisted_limit, attach
 
 PROBE = "reader_probe"
 
@@ -25,7 +25,7 @@ PROBE = "reader_probe"
 def con(request, environment):
     if not request.config.getoption("--reader"):
         pytest.skip("needs a reader's credentials and --reader")
-    con = attach(environment)  # the inlining guard doubles as a catalog read
+    con = attach(environment)  # the initialised-catalog guard doubles as a catalog read
     yield con
     con.close()
 
@@ -47,6 +47,13 @@ def test_reads_gold(con):
 def test_catalog_refuses_a_write(con):
     error = refused(con, f"CREATE SCHEMA {LAKE}.{PROBE}", f"DROP SCHEMA {LAKE}.{PROBE}")
     assert "permission denied" in error.lower(), error  # Postgres's wording, not a typo in our SQL
+
+
+def test_catalog_refuses_an_option(con):
+    before = _persisted_limit(con)
+    error = refused(con, f"CALL {LAKE}.set_option('data_inlining_row_limit', 1000)",
+                    f"CALL {LAKE}.set_option('data_inlining_row_limit', {before})")
+    assert "permission denied" in error.lower(), error
 
 
 def test_storage_refuses_a_write(con):

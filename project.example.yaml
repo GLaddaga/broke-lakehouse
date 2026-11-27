@@ -6,6 +6,10 @@ lakehouse:
   # project, the Infisical projects and the roles. Lowercase letters, digits
   # and dashes. Permanent: the catalog records the data path on first attach.
   name: my-lakehouse
+  # Inserts of up to this many rows are kept as rows in the Neon catalog
+  # instead of Parquet files; 0 = never. Applied by `initialise`, and by
+  # `configure <environment>` after an edit. Not read by tofu.
+  inlining_row_limit: 0
 
 neon:
   # e.g. aws-eu-central-1. Permanent: a Neon project can't be moved.

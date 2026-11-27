@@ -13,7 +13,7 @@ from broke_lakehouse.client import attach, credentials
 class Plugin(BasePlugin):
     def initialize(self, plugin_config):
         self.environment = plugin_config["environment"]
-        # The inlining guard, on a throwaway connection as in destination():
+        # The initialised-catalog guard, on a throwaway connection as in destination():
         # dbt's own attach comes after the plugin, where no hook can check it.
         attach(self.environment).close()
 

@@ -53,14 +53,23 @@ def _path(secrets: dict[str, str]) -> tuple[str, str]:
     return url.netloc, url.path.strip("/") + "/"
 
 
-def _assert_no_inlining(con: duckdb.DuckDBPyConnection) -> None:
+def _persisted_limit(con: duckdb.DuckDBPyConnection) -> str | None:
+    """The limit persisted in the catalog, None if it was never set."""
+    row = con.sql(f"SELECT value FROM {LAKE}.options() WHERE scope = 'GLOBAL' "
+                  "AND option_name = 'data_inlining_row_limit'").fetchone()
+    return row and row[0]
+
+
+def _assert_initialised(con: duckdb.DuckDBPyConnection) -> None:
     """
-    Refuse a lakehouse that would write rows into Neon instead of Parquet.
+    Refuse a catalog that initialise() did not finish. DuckLake does not persist
+    an ATTACH-time limit, so creating the catalog and setting the limit are two
+    steps; one that died in between leaves no limit, which DuckLake reads as
+    inlining writes of up to 10 rows into Neon.
     """
-    if con.sql(f"SELECT value FROM {LAKE}.options() WHERE scope = 'GLOBAL' "
-               "AND option_name = 'data_inlining_row_limit'").fetchall() != [("0",)]:
-        raise RuntimeError(
-            "data_inlining_row_limit is not 0")
+    if _persisted_limit(con) is None:
+        raise RuntimeError("data_inlining_row_limit is not set: the catalog was not "
+                           "created by initialise — `configure <environment>` sets it")
 
 
 def credentials(environment: str, con: duckdb.DuckDBPyConnection) -> None:
@@ -125,5 +134,5 @@ def attach(environment: str, *, create: bool = False, verify: bool = True) -> du
     credentials(environment, con)
     con.sql(f"ATTACH 'ducklake:{LAKE}' AS {LAKE} (CREATE_IF_NOT_EXISTS {str(create).lower()})")
     if verify:
-        _assert_no_inlining(con)
+        _assert_initialised(con)
     return con

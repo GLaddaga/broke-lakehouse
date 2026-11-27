@@ -12,7 +12,9 @@
         bucket that no snapshot ever referenced, which expiry cannot reach.
         Same `retention` window, so a load still writing is never taken for one.
 
-    The order matters. Merging writes new files and retires the small ones;
+    The order matters. Flushing writes inlined rows out as Parquet (nothing to
+    do at an inlining limit of 0), so the merge compacts them in the same run.
+    Merging writes new files and retires the small ones;
     expiry drops the snapshots that still reference retired files; only then
     does cleanup find them unreferenced and delete them.
 
@@ -28,6 +30,7 @@
     {%- endif -%}
     {%- set lake = target.database -%}
     {%- set steps = [
+        ("flushed", "CALL ducklake_flush_inlined_data('" ~ lake ~ "')"),
         ("merged",  "CALL ducklake_merge_adjacent_files('" ~ lake ~ "')"),
         ("expired", "CALL ducklake_expire_snapshots('" ~ lake ~ "', older_than => now() - INTERVAL '" ~ retention ~ "')"),
         ("deleted", "CALL ducklake_cleanup_old_files('" ~ lake ~ "', cleanup_all => true)"),

@@ -23,7 +23,7 @@ storage (Tigris for now) and the catalog in Postgres (Neon). Only `prod` exists 
 | Metadata schema | `public` | branches already isolate |
 | Buckets | one, prefix per environment | prefix-scoped keys isolate as well as separate buckets |
 | Connection pooling | off | Neon's pooler drops the prepared statements DuckDB uses |
-| Data inlining | `data_inlining_row_limit = 0` | every write is Parquet, never rows in Neon: a small file on Tigris costs far less than a row in Neon, and dlt writes in batches anyway. Stored in the catalog, so it applies to every client |
+| Data inlining | `lakehouse.inlining_row_limit` in `project.yaml`, default 0 | see [Data inlining](#data-inlining). Stored in the catalog, so it applies to every client |
 | S3 secret | `PROVIDER config`, `URL_STYLE 'vhost'`, `REGION` from config | non-AWS stores issue static keys only, so there is no credential chain. vhost is confirmed on Tigris only; try `path` if another provider gives a DNS-looking bucket-not-found |
 
 DuckLake writes files at `<data path>/<schema>/<table>/ducklake-<uuid>.parquet`
@@ -63,6 +63,7 @@ podman run --env-file .env.runner --rm -it -v $(pwd):/workspace localhost/broke-
 |---|---|
 | `survey` | read-only listing of catalog tables and bucket objects |
 | `initialise` | creates the catalog, the only command that can; refuses if one exists. `--force` purges first |
+| `configure` | re-applies `project.yaml`'s inlining limit to an existing catalog, printing the old and new values |
 | `reset` | drops every table, view and schema and deletes their files; keeps the catalog |
 | `purge` | destroys catalog and files, bypassing DuckLake. Asks for confirmation, so it needs `-it` |
 
@@ -77,6 +78,24 @@ New environment: `survey` → `purge` if anything was found → run
 podman run --env-file .env.runner --rm -v $(pwd):/workspace \
   localhost/broke-lakehouse python -m pytest tests/ -v --lakehouse-env <environment>
 ```
+
+## Data inlining
+
+Inserts of up to `inlining_row_limit` rows are stored as rows in Neon tables
+instead of Parquet files.
+
+- **0 (default):** every write is Parquet, and Neon holds only metadata. A
+  small file on Tigris costs far less than a row in Neon, and dlt writes in
+  batches anyway.
+- **N:** suits frequent small appends, which would otherwise leave one tiny
+  file each. The rows cost Neon storage and compute until `maintain_ducklake`
+  flushes them to Parquet.
+
+`initialise` persists the value, and `configure` re-applies it after an edit.
+Raising it affects only later writes. Lowering it leaves rows already inlined in
+Neon until the next maintenance flush. Every client checks only that a limit is
+set (a catalog without one inlines up to 10 rows). Readers can't change it:
+their Neon role is read-only (`tests/test_reader.py`).
 
 ## Gotchas
 

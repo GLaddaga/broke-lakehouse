@@ -13,7 +13,7 @@ podman run --env-file .env.runner --rm -v $(pwd):/workspace -w /workspace \
 There is no dlt config file. `destination(environment)` in `broke_lakehouse/ops.py`
 builds dlt's `ducklake` destination from the same Infisical values `attach()`
 uses, with `ducklake_name="lake"` (the shared alias). It first runs one
-`attach()` to check the inlining guard, which also makes bad credentials fail
+`attach()` to check the initialised-catalog guard, which also makes bad credentials fail
 early, without printing the password.
 
 **dlt can print the password.** It takes the catalog URI verbatim, so a connect

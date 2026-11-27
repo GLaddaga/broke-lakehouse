@@ -4,6 +4,7 @@ lives in `broke_lakehouse.client`. Needs the `pipeline` extra (boto3, dlt).
     python -m broke_lakehouse.ops survey     prod   # what is there, read-only (exit 1 if occupied)
     python -m broke_lakehouse.ops initialise prod   # create the catalog, once per lakehouse
     python -m broke_lakehouse.ops initialise prod --force   # purge first (asks), then create
+    python -m broke_lakehouse.ops configure  prod   # re-apply project.yaml's inlining limit
     python -m broke_lakehouse.ops reset      prod   # empty it, keep the catalog (asks first)
     python -m broke_lakehouse.ops purge      prod   # destroy it, catalog and all (asks first)
 
@@ -15,13 +16,42 @@ lakehouse a command touches — and that belongs in the command, visibly.
 import argparse
 import sys
 from contextlib import contextmanager
+from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 import boto3
 import duckdb
+from ruamel.yaml import YAML
 
-from broke_lakehouse.client import LAKE, NAMES, _path, _sql, attach
+from broke_lakehouse.client import LAKE, NAMES, _path, _persisted_limit, _sql, attach
 from broke_lakehouse.secrets import get_secrets
+
+PROJECT = Path("project.yaml")  # relative: every command runs from the repo root
+
+
+def _project_limit(path: Path = PROJECT) -> int:
+    """
+    `lakehouse.inlining_row_limit` from project.yaml, 0 when the key is absent.
+    The file itself is required: a missing one means the wrong directory, and
+    defaulting would silently drop a chosen limit.
+    """
+    if not path.is_file():
+        raise RuntimeError(f"no {path} in {Path.cwd()}: run from the repo root")
+    project = YAML(typ="safe").load(path) or {}  # safe: plain ints, not ScalarInt
+    limit = (project.get("lakehouse") or {}).get("inlining_row_limit", 0)
+    if type(limit) is not int or limit < 0:  # `is`: `true` is a bool, and bool is an int
+        raise RuntimeError(f"lakehouse.inlining_row_limit in {path} is {limit!r}, "
+                           "expected a whole number of rows, 0 or more")
+    return limit
+
+
+def _apply_inlining_options(con: duckdb.DuckDBPyConnection,
+                   path: Path = PROJECT) -> tuple[str | None, int]:
+    """project.yaml's inlining limit onto the attached catalog, as (before, after)."""
+    limit = _project_limit(path)
+    before = _persisted_limit(con)
+    con.sql(f"CALL {LAKE}.set_option('data_inlining_row_limit', {limit})")
+    return before, limit
 
 
 def _redact(error: Exception, uri: str) -> RuntimeError:
@@ -86,7 +116,7 @@ def destination(environment: str):
     The same lakehouse, expressed as a dlt destination.
 
     dlt issues its own ATTACH, so it never passes through attach() — hence the
-    throwaway connection, which is what applies the inlining guard to the one
+    throwaway connection, which is what applies the initialised-catalog guard to the one
     path that actually writes bulk data. One Neon round trip per pipeline run.
     """
     from dlt.common.configuration.specs import AwsCredentials
@@ -138,10 +168,12 @@ def survey(secrets: dict[str, str]) -> tuple[list[str], list[str]]:
     return tables, objects
 
 
-def initialise(environment: str, *, force: bool = False) -> None:
+def initialise(environment: str, *, force: bool = False) -> int:
     """
     Create the catalog and persist the options every later client inherits.
+    Returns the inlining limit it persisted.
     """
+    _project_limit()  # a bad project.yaml stops here, before --force can purge
     secrets = get_secrets(NAMES, environment=environment)
     bucket, prefix = _path(secrets)
     if prefix != f"{environment}/":
@@ -158,8 +190,22 @@ def initialise(environment: str, *, force: bool = False) -> None:
 
 
     con = attach(environment, create=True, verify=False)
-    con.sql(f"CALL {LAKE}.set_option('data_inlining_row_limit', 0)")
-    con.close()
+    try:
+        return _apply_inlining_options(con)[1]
+    finally:
+        con.close()
+
+
+def configure(environment: str) -> tuple[str | None, int]:
+    """
+    Re-apply project.yaml's inlining limit to an existing catalog: after editing the
+    limit, or to repair one an interrupted initialise left without it.
+    """
+    con = attach(environment, verify=False)  # unverified, so it can repair
+    try:
+        return _apply_inlining_options(con)
+    finally:
+        con.close()
 
 
 def _list(heading: str, lines: list[str]) -> None:
@@ -270,7 +316,8 @@ def reset(environment: str) -> list[str]:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="python -m broke_lakehouse.ops")
-    parser.add_argument("command", choices=["survey", "initialise", "reset", "purge"])
+    parser.add_argument("command",
+                        choices=["survey", "initialise", "configure", "reset", "purge"])
     parser.add_argument("environment",
                         help="Infisical slug, Neon branch and bucket prefix")
     parser.add_argument("--force", action="store_true",
@@ -286,8 +333,11 @@ if __name__ == "__main__":
             _show(env, tables, objects)
             sys.exit(1 if tables or objects else 0)
         elif args.command == "initialise":
-            initialise(env, force=args.force)
-            print(f"{env}: catalog created, data_inlining_row_limit persisted as 0")
+            limit = initialise(env, force=args.force)
+            print(f"{env}: catalog created, data_inlining_row_limit persisted as {limit}")
+        elif args.command == "configure":
+            before, after = configure(env)
+            print(f"{env}: data_inlining_row_limit {before} → {after}")
         elif args.command == "reset":
             print(f"{env}: dropped {len(reset(env))} table(s) and view(s), catalog kept")
         else:
