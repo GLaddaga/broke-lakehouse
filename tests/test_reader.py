@@ -41,7 +41,12 @@ def refused(con, sql: str, undo: str) -> str:
 
 
 def test_reads_gold(con):
-    assert con.sql(f"SELECT count(*) FROM {LAKE}.gold.revenue_monthly__tpch").fetchone()[0] > 0
+    """Any gold table, so the test holds for whatever models a project has: the
+    listing reads the catalog (the Neon role), the SELECT a Parquet file (the key)."""
+    tables = con.sql("SELECT table_name FROM duckdb_tables() "
+                     f"WHERE database_name = '{LAKE}' AND schema_name = 'gold'").fetchall()
+    assert tables, "nothing in gold: has the pipeline run?"
+    con.sql(f"SELECT * FROM {LAKE}.gold.{tables[0][0]} LIMIT 1").fetchall()
 
 
 def test_catalog_refuses_a_write(con):
